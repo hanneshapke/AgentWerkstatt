@@ -1,7 +1,7 @@
 # AgentWerkstatt 🤖
 
 <p align="center">
-  <img src="https://github.com/hanneshapke/agentwerkstatt/blob/main/docs/images/agentwerkstatt-logo.png" alt="AgentWerkstatt Logo" width="400">
+  <img src="https://raw.githubusercontent.com/hanneshapke/agentwerkstatt/main/misc/agent-werkstatt-logo.png" alt="AgentWerkstatt Logo" width="400">
 </p>
 
 A minimalistic agentic framework for building AI agents with tool calling capabilities.
