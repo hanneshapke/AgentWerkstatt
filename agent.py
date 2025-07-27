@@ -4,10 +4,17 @@ import json
 from dataclasses import dataclass
 
 import yaml
-from absl import logging
+from absl import app, flags, logging
 
 from llms.claude import ClaudeLLM
 from tools.discovery import ToolRegistry
+
+FLAGS = flags.FLAGS
+flags.DEFINE_string(
+    'config',
+    'agent_config.yaml',
+    'Path to the agent configuration file.'
+)
 
 
 @dataclass
@@ -61,16 +68,6 @@ class Agent:
         Returns:
             Response string from Claude
         """
-        # # Check for incomplete tool calls and complete them automatically
-        # incomplete_info = self._get_incomplete_tool_calls()
-        # if incomplete_info:
-        #     print("🔄 Completing previous tool call...")
-        #     try:
-        #         self._complete_tool_calls(incomplete_info)
-        #         print("✅ Previous tool call completed!")
-        #     except Exception as e:
-        #         print(f"❌ Error completing tool call: {e}")
-        #         return "❌ Could not complete previous tool call. Please type 'clear' to reset the conversation history."
 
         user_message = {"role": "user", "content": user_input}
         messages = self.llm.conversation_history + [user_message]
@@ -147,127 +144,17 @@ class Agent:
 
             return response_text
 
-    # def _get_incomplete_tool_calls(self) -> dict | None:
-    #     """
-    #     Get information about incomplete tool calls in conversation history
 
-    #     Returns:
-    #         Dict with tool call info if incomplete calls exist, None otherwise
-    #         Format: {
-    #             'assistant_message': {...},
-    #             'missing_tool_calls': [{tool_use_block}, ...]
-    #         }
-    #     """
-    #     if not self.llm.conversation_history:
-    #         return None
-
-    #     # Look for the last assistant message
-    #     last_assistant_msg = None
-    #     last_assistant_idx = None
-    #     for i, msg in enumerate(reversed(self.llm.conversation_history)):
-    #         if msg.get("role") == "assistant":
-    #             last_assistant_msg = msg
-    #             last_assistant_idx = len(self.llm.conversation_history) - 1 - i
-    #             break
-
-    #     if not last_assistant_msg:
-    #         return None
-
-    #     # Check if it contains tool_use
-    #     content = last_assistant_msg.get("content", [])
-    #     if isinstance(content, str):
-    #         return None
-
-    #     tool_use_blocks = []
-    #     for block in content:
-    #         if isinstance(block, dict) and block.get("type") == "tool_use":
-    #             tool_use_blocks.append(block)
-
-    #     if not tool_use_blocks:
-    #         return None
-
-    #     # Check if there are corresponding tool_results after this assistant message
-    #     completed_tool_ids = set()
-
-    #     # Look at messages after the assistant message
-    #     for msg in self.llm.conversation_history[last_assistant_idx + 1:]:
-    #         if msg.get("role") == "user":
-    #             user_content = msg.get("content", [])
-    #             if isinstance(user_content, str):
-    #                 # This is a regular user message, not tool results
-    #                 break
-
-    #             for block in user_content:
-    #                 if isinstance(block, dict) and block.get("type") == "tool_result":
-    #                     completed_tool_ids.add(block.get("tool_use_id"))
-
-    #     # Find missing tool calls
-    #     missing_tool_calls = []
-    #     for tool_block in tool_use_blocks:
-    #         if tool_block.get("id") not in completed_tool_ids:
-    #             missing_tool_calls.append(tool_block)
-
-    #     if missing_tool_calls:
-    #         return {
-    #             'assistant_message': last_assistant_msg,
-    #             'assistant_message_idx': last_assistant_idx,
-    #             'missing_tool_calls': missing_tool_calls
-    #         }
-
-    #     return None
-
-    # def _complete_tool_calls(self, incomplete_info: dict) -> None:
-    #     """
-    #     Complete the missing tool calls and update conversation history
-
-    #     Args:
-    #         incomplete_info: Dict from _get_incomplete_tool_calls()
-    #     """
-    #     missing_tool_calls = incomplete_info['missing_tool_calls']
-    #     assistant_msg_idx = incomplete_info['assistant_message_idx']
-
-    #     # Execute missing tool calls
-    #     tool_results = []
-    #     for tool_block in missing_tool_calls:
-    #         tool_name = tool_block["name"]
-    #         tool_input = tool_block["input"]
-    #         tool_id = tool_block["id"]
-
-    #         try:
-    #             result = self.execute_tool_call(tool_name, tool_input)
-    #             tool_results.append({
-    #                 "type": "tool_result",
-    #                 "tool_use_id": tool_id,
-    #                 "content": json.dumps(result)
-    #             })
-    #         except Exception as e:
-    #             logging.error(f"Error executing tool {tool_name}: {e}")
-    #             tool_results.append({
-    #                 "type": "tool_result",
-    #                 "tool_use_id": tool_id,
-    #                 "content": f"Error: {str(e)}"
-    #             })
-
-    #     # Add tool results to conversation history
-    #     tool_result_message = {"role": "user", "content": tool_results}
-    #     self.llm.conversation_history.insert(assistant_msg_idx + 1, tool_result_message)
-
-    #     # Get final response from Claude
-    #     messages_for_completion = self.llm.conversation_history.copy()
-    #     final_response = self.llm.make_api_request(messages_for_completion)
-
-    #     if "error" not in final_response:
-    #         final_content = final_response.get("content", [])
-    #         final_assistant_msg = {"role": "assistant", "content": final_content}
-    #         self.llm.conversation_history.append(final_assistant_msg)
-
-
-def main():
+def main(argv):
     """CLI interface for the AgentWerkstatt"""
+    del argv  # Unused
+
     print("🤖 AgentWerkstatt")
     print("=" * 50)
 
-    config = AgentConfig.from_yaml("agent_config.yaml")
+    print(f"Loading config from: {FLAGS.config}")
+
+    config = AgentConfig.from_yaml(FLAGS.config)
 
     # Initialize the agent
     agent = Agent(config)
@@ -291,11 +178,7 @@ def main():
                 continue
             elif user_input.lower() == "status":
                 history_len = len(agent.llm.conversation_history)
-                # incomplete_info = agent._get_incomplete_tool_calls()
-                # has_incomplete = incomplete_info is not None
-                # print(f"📊 Conversation: {history_len} messages, Incomplete tools: {'Yes' if has_incomplete else 'No'}")
-                # if has_incomplete:
-                #     print("⚠️  Use 'clear' to reset conversation history")
+
                 print(f"📊 Conversation: {history_len} messages")
                 continue
 
@@ -313,5 +196,10 @@ def main():
         #     print(f"❌ Error: {e}")
 
 
+def cli():
+    """Entry point for the CLI when installed via pip"""
+    app.run(main)
+
+
 if __name__ == "__main__":
-    main()
+    app.run(main)

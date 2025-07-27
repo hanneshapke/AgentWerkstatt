@@ -44,7 +44,7 @@ dev = [
 ]
 
 [project.scripts]
-agentwerkstatt = "agent:main"
+agentwerkstatt = "agent:cli"
 
 [project.urls]
 Homepage = "https://github.com/hanneshapke/agentwerkstatt"

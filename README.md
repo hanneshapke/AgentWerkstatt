@@ -13,7 +13,7 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents pow
 ## Features
 
 - 🧠 **Modular LLM Support** - Built with extensible LLM abstraction (currently supports Claude)
-- 🔧 **Tool System** - Pluggable tool architecture with web search capabilities
+- 🔧 **Tool System** - Pluggable tool architecture with automatic tool discovery
 - 💬 **Conversation Management** - Built-in conversation history and context management
 - 🌐 **Web Search** - Integrated Tavily API for real-time web information retrieval
 - 🖥️ **CLI Interface** - Ready-to-use command-line interface
@@ -77,7 +77,7 @@ Example conversation:
 
 I'm an example AgentWerkstatt assistant with web search capabilities!
 Ask me to search the web for information.
-Type 'quit', 'exit', or 'clear' to manage the session.
+Commands: 'quit'/'exit' to quit, 'clear' to reset, 'status' to check conversation state.
 
 You: What's the latest news about AI developments?
 🤔 Agent is thinking...
@@ -96,10 +96,20 @@ You: quit
 #### Programmatic Usage
 
 ```python
-from agent import ClaudeAgent
+from agent import Agent, AgentConfig
 
-# Initialize the agent
-agent = ClaudeAgent()
+# Initialize with default config
+config = AgentConfig.from_yaml("agent_config.yaml")
+agent = Agent(config)
+
+# Or customize the configuration
+config = AgentConfig(
+    model="claude-sonnet-4-20250514",
+    tools_dir="./tools",
+    verbose=True,
+    agent_objective="You are a helpful assistant with web search capabilities."
+)
+agent = Agent(config)
 
 # Process a request
 response = agent.process_request("Search for recent Python releases")
@@ -115,16 +125,18 @@ agent.llm.clear_history()
 
 ```
 AgentWerkstatt/
-├── agent.py           # Main agent implementation
-├── llms/              # LLM provider modules
-│   ├── base.py        # Base LLM abstraction
-│   ├── claude.py      # Claude implementation
+├── agent.py               # Main agent implementation and CLI
+├── agent_config.yaml      # Default configuration
+├── llms/                  # LLM provider modules
+│   ├── base.py           # Base LLM abstraction
+│   ├── claude.py         # Claude implementation
 │   └── __init__.py
-├── tools/             # Tool modules
-│   ├── base.py        # Base tool abstraction
-│   ├── websearch.py   # Tavily web search tool
+├── tools/                # Tool modules
+│   ├── base.py          # Base tool abstraction
+│   ├── discovery.py     # Automatic tool discovery
+│   ├── websearch.py     # Tavily web search tool
 │   └── __init__.py
-└── pyproject.toml     # Project configuration
+└── pyproject.toml       # Project configuration
 ```
 
 ### LLM Providers
@@ -139,15 +151,53 @@ The framework uses a base `BaseLLM` class that can be extended for different pro
 Tools are modular components that extend agent capabilities:
 
 - **Web Search** - Tavily API integration for real-time information retrieval
+- **Automatic Discovery** - Tools are automatically discovered from the tools directory
 - **Extensible** - Add new tools by implementing `BaseTool`
 
 ### Agent System
 
-The `ClaudeAgent` class orchestrates:
+The `Agent` class orchestrates:
 - LLM interactions
-- Tool execution
+- Tool execution and discovery
 - Conversation management
 - Response generation
+
+## Configuration
+
+### Environment Variables
+
+- `ANTHROPIC_API_KEY` - Required for Claude API access
+- `TAVILY_API_KEY` - Optional, for web search functionality
+
+### Configuration File
+
+Default configuration in `agent_config.yaml`:
+
+```yaml
+# LLM Model Configuration
+model: "claude-sonnet-4-20250514"
+
+# Tools Configuration
+tools_dir: "./tools"
+
+# Logging Configuration
+verbose: true
+
+# Agent Objective/System Prompt
+agent_objective: |
+  You are a helpful assistant with web search capabilities.
+  You can search the web for current information and provide accurate, helpful responses.
+  Always be conversational and helpful in your responses.
+```
+
+### Model Configuration
+
+To use a different model programmatically:
+
+```python
+config = AgentConfig(model="claude-3-5-sonnet-20241022")
+agent = Agent(config)
+```
 
 ## Development
 
@@ -160,16 +210,16 @@ The `ClaudeAgent` class orchestrates:
 from .base import BaseLLM
 
 class OpenAILLM(BaseLLM):
-    def __init__(self, model_name: str, tools: Dict):
-        super().__init__(model_name, tools)
+    def __init__(self, model_name: str, tools: list, agent_objective: str = ""):
+        super().__init__(model_name, tools, agent_objective)
         self.api_key = os.getenv("OPENAI_API_KEY")
         # Set other provider-specific configurations
 
-    def make_api_request(self, messages: List[Dict]) -> Dict:
+    def make_api_request(self, messages: list[dict]) -> dict:
         # Implement API request logic
         pass
 
-    def process_request(self, messages: List[Dict]) -> str:
+    def process_request(self, messages: list[dict]) -> tuple[list[dict], list[dict]]:
         # Implement request processing
         pass
 ```
@@ -183,18 +233,19 @@ class OpenAILLM(BaseLLM):
 
 ```python
 from .base import BaseTool
+from typing import Any
 
 class WeatherTool(BaseTool):
     def _get_name(self) -> str:
-        return "weather_tool"
+        return "Weather Tool"
 
     def _get_description(self) -> str:
         return "Get weather information for a location"
 
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         return {
-            "name": self.name,
-            "description": self.description,
+            "name": self.get_name(),
+            "description": self.get_description(),
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -207,65 +258,75 @@ class WeatherTool(BaseTool):
             }
         }
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def execute(self, **kwargs) -> dict[str, Any]:
         # Implement tool logic
-        pass
+        location = kwargs.get("location")
+        # Your weather API logic here
+        return {"weather": f"Sunny in {location}"}
 ```
 
-3. Update the agent to include your new tool:
+3. The tool will be automatically discovered by the `ToolRegistry` - no manual registration needed!
 
-```python
-self.tools = {
-    "websearch_tool": TavilySearchTool(),
-    "weather_tool": WeatherTool()
-}
-```
-
-### Running Tests
+### Development Setup
 
 ```bash
-# Install development dependencies
+# Clone and setup
+git clone https://github.com/hanneshapke/agentwerkstatt.git
+cd agentwerkstatt
 uv sync --dev
 
+# Code formatting and linting
+uv run ruff check --fix
+uv run ruff format
+
+# Type checking
+uv run mypy .
+
 # Run tests
-pytest
+uv run pytest
 
-# Run linting
-black .
-flake8 .
-mypy .
+# Run tests with coverage
+uv run pytest --cov=agentwerkstatt --cov-report=html --cov-report=term
 ```
 
-## Configuration
+### Quality Assurance
 
-### Environment Variables
+The project uses modern Python development tools:
 
-- `ANTHROPIC_API_KEY` - Required for Claude API access
-- `TAVILY_API_KEY` - Optional, for web search functionality
+- **Ruff** - Fast Python linter and formatter (replaces black, flake8, isort)
+- **MyPy** - Static type checking
+- **Pytest** - Testing framework
+- **Pre-commit** - Git hooks for code quality
 
-### Model Configuration
+## Dependencies
 
-Default model: `claude-sonnet-4-20250514`
-
-To use a different model:
-
-```python
-agent = ClaudeAgent(model="claude-3-5-sonnet-20241022")
-```
+Core dependencies:
+- `httpx` - Modern HTTP client for API requests
+- `python-dotenv` - Environment variable management
+- `absl-py` - Google's Python common libraries
+- `PyYAML` - YAML configuration file support
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests and ensure code quality
+4. Run the quality checks:
+   ```bash
+   uv run ruff check --fix
+   uv run ruff format
+   uv run mypy .
+   uv run pytest
+   ```
 5. Commit your changes (`git commit -m 'Add amazing feature'`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The license is still under development.
 
 ## Acknowledgments
 

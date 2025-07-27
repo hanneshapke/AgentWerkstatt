@@ -26,7 +26,7 @@ class TavilySearchTool(BaseTool):
         """Return the tool name"""
         return "Web search"
 
-    def get_description(self) -> str:
+    def _get_description(self) -> str:
         """Return the tool description"""
         return "Search the web for comprehensive, real-time information using Google"
 
@@ -34,7 +34,7 @@ class TavilySearchTool(BaseTool):
         """Return the tool schema for Claude"""
         return {
             "name": self.get_name(),
-            "description": self.get_description(),
+            "description": self.description,
             "input_schema": {
                 "type": "object",
                 "properties": {
