@@ -1,6 +1,7 @@
 import os
 
 import httpx
+from absl import logging
 from dotenv import load_dotenv
 
 from .base import BaseLLM
@@ -11,26 +12,43 @@ load_dotenv()
 class ClaudeLLM(BaseLLM):
     """Claude LLM"""
 
-    def __init__(self, model_name: str, tools: dict):
+    def __init__(self, agent_objective: str, model_name: str, tools: dict):
         super().__init__(model_name, tools)
 
         self.base_url = "https://api.anthropic.com/v1/messages"
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        self.base_system_prompt = """You are a helpful assistant with answering questions. You have access to two main tools:
+        self.agent_objective = agent_objective
+        self.base_system_prompt = """
+{agent_objective}
 
-1. **Web Search Tool (websearch_tool)**: Can search the web for information using Google
+You have {num_tools} tools at your disposal:
 
-When users ask for information that requires current knowledge or web-based research, use the websearch_tool to find relevant information.
-
-When the users asks about common questions, use the LLM to answer the question.
-
-Always be conversational and helpful."""
+{tool_descriptions}
+""".strip()
 
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable is required")
 
+    @property
+    def system_prompt(self) -> str:
+        """Get the system prompt"""
+
+        tool_descriptions = ""
+        for tool in self.tools:
+            tool_descriptions += (
+                f"{tool.get_name()} ({tool.get_function_name()}): {tool.description}\n"
+            )
+        _system_prompt = self.base_system_prompt.format(
+            agent_objective=self.agent_objective,
+            num_tools=len(self.tools),
+            tool_descriptions=tool_descriptions,
+        )
+        logging.debug(f"System prompt: {_system_prompt}")
+        return _system_prompt
+
     def make_api_request(self, messages: list[dict] = None) -> dict:
         """Make a request to the Claude API"""
+
         headers = {
             "Content-Type": "application/json",
             "x-api-key": self.api_key,
@@ -45,12 +63,16 @@ Always be conversational and helpful."""
         }
 
         if self.tools:
-            tool_schemas = [tool.get_schema() for tool in self.tools.values()]
+            tool_schemas = [tool.get_schema() for tool in self.tools]
             payload["tools"] = tool_schemas
+
+        logging.debug(f"Making API request with payload: {payload}")
+        logging.debug(f"Headers: {headers}")
 
         try:
             with httpx.Client(timeout=self.timeout) as client:
                 response = client.post(self.base_url, json=payload, headers=headers)
+                logging.debug(f"Response: {response.json()}")
                 response.raise_for_status()
                 return response.json()
         except httpx.HTTPError as e:
@@ -58,21 +80,27 @@ Always be conversational and helpful."""
         except Exception as e:
             return {"error": f"Unexpected error: {str(e)}"}
 
-    def process_request(self, messages: list[dict]) -> str:
+    def process_request(self, messages: list[dict]) -> tuple[list[dict], list]:
         """
         Process user request using Claude API
 
         Args:
-            user_input: User's request as a string
+            messages: List of conversation messages
 
         Returns:
-            Response string from Claude
+            Tuple of (updated_messages, assistant_message_content)
         """
         # Make initial API request
+        logging.debug(f"Making API request with {len(messages)} messages")
+        logging.debug(f"Last 2 messages: {messages[-2:] if len(messages) >= 2 else messages}")
         response = self.make_api_request(messages)
 
         if "error" in response:
-            return f"❌ Error communicating with Claude: {response['error']}"
+            # Return error as assistant message
+            error_message = [
+                {"type": "text", "text": f"❌ Error communicating with Claude: {response['error']}"}
+            ]
+            return messages, error_message
 
         # Process the response
         assistant_message = response.get("content", [])

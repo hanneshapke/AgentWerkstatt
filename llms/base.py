@@ -21,8 +21,15 @@ class BaseLLM:
         """Make an API request to the LLM"""
         raise NotImplementedError("Subclasses must implement this method")
 
-    def process_request(self, messages: list[dict]) -> str:
-        """Process user request using LLM"""
+    def process_request(self, messages: list[dict]) -> tuple[list[dict], list]:
+        """Process user request using LLM
+
+        Args:
+            messages: List of conversation messages
+
+        Returns:
+            Tuple of (updated_messages, assistant_message_content)
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
     @property

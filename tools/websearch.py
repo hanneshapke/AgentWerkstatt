@@ -12,8 +12,6 @@ from absl import logging
 
 from .base import BaseTool
 
-logging.set_verbosity(logging.INFO)
-
 
 class TavilySearchTool(BaseTool):
     """Tool to perform web searches using Tavily API"""
@@ -26,11 +24,11 @@ class TavilySearchTool(BaseTool):
 
     def _get_name(self) -> str:
         """Return the tool name"""
-        return "websearch_tool"
+        return "Web search"
 
     def _get_description(self) -> str:
         """Return the tool description"""
-        return "Search the web for comprehensive, real-time information using Tavily API"
+        return "Search the web for comprehensive, real-time information using Google"
 
     def get_schema(self) -> dict[str, Any]:
         """Return the tool schema for Claude"""
@@ -83,17 +81,11 @@ class TavilySearchTool(BaseTool):
         search_depth = kwargs.get("search_depth", "basic")
         include_answer = kwargs.get("include_answer", True)
 
-        logging.info(
+        logging.debug(
             f"Executing Tavily search tool with query: {query} and max_results: {max_results}"
         )
-        logging.info(f"Tavily API key: {self.api_key}")
         if not query:
             return {"success": False, "error": "Search query is required", "results": []}
-
-        logging.info(
-            f"Executing Tavily search tool with query: {query} and max_results: {max_results}"
-        )
-        logging.info(f"Tavily API key: {self.api_key}")
 
         if not self.api_key:
             return {

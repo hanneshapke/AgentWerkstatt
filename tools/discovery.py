@@ -8,8 +8,6 @@ from absl import logging
 
 from .base import BaseTool
 
-logging.set_verbosity(logging.INFO)
-
 
 class ToolRegistry:
     def __init__(self, tools: list[BaseTool] = None, tools_dir: str = None):
@@ -52,14 +50,14 @@ class ToolRegistry:
                         try:
                             tool_instance = obj()
                             tools.append(tool_instance)
-                            logging.info(f"Discovered tool: {tool_instance.name}")
+                            logging.debug(f"Discovered tool: {tool_instance.name}")
                         except Exception as e:
                             logging.error(f"Failed to instantiate tool {name}: {e}")
 
             except Exception as e:
                 logging.error(f"Failed to import module {module_name}: {e}")
 
-        logging.info(f"Discovered {len(tools)} tools total")
+        logging.debug(f"Discovered {len(tools)} tools total")
         return tools
 
     def get_tool_schemas(self) -> list[dict]:
@@ -69,15 +67,8 @@ class ToolRegistry:
     def get_tool_by_name(self, name: str) -> BaseTool:
         """Get a specific tool by name"""
         for tool in self.tools:
-            if tool.name == name:
+            if tool.get_name() == name:
                 return tool
         raise ValueError(
             f"Tool '{name}' not found. Available tools: {[t.name for t in self.tools]}"
         )
-
-    def get_tool_descriptions(self) -> list[str]:
-        """Get descriptions for all discovered tools"""
-        descriptions = []
-        for tool in self.tools:
-            descriptions.append(f"**{tool.get_function_name()} ({tool.name})**: {tool.description}")
-        return descriptions

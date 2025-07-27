@@ -20,6 +20,10 @@ class BaseTool(ABC):
         """Return the tool name"""
         pass
 
+    def get_name(self) -> str:
+        """Return the tool name"""
+        return self.name.lower().replace(" ", "_").replace("-", "_")
+
     def get_function_name(self) -> str:
         """Return the dynamic function name"""
         return self.name.lower().replace(" ", "_").replace("-", "_") + "_tool"
