@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-file-agent"
+name = "agentwerkstatt"
 dynamic = ["version"]
 description = "AgentWerkstatt, a minimalistic agentic framework"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Hannes Hapke", email = "hannes-dot-hapke-at-gmail-dot-com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
