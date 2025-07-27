@@ -10,11 +10,7 @@ from llms.claude import ClaudeLLM
 from tools.discovery import ToolRegistry
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(
-    'config',
-    'agent_config.yaml',
-    'Path to the agent configuration file.'
-)
+flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")
 
 
 @dataclass
