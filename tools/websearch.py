@@ -26,15 +26,15 @@ class TavilySearchTool(BaseTool):
         """Return the tool name"""
         return "Web search"
 
-    def _get_description(self) -> str:
+    def get_description(self) -> str:
         """Return the tool description"""
         return "Search the web for comprehensive, real-time information using Google"
 
     def get_schema(self) -> dict[str, Any]:
         """Return the tool schema for Claude"""
         return {
-            "name": self.name,
-            "description": self.description,
+            "name": self.get_name(),
+            "description": self.get_description(),
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -134,7 +134,7 @@ class TavilySearchTool(BaseTool):
                     }
                 )
 
-            logging.info(f"Tavily search results: {data}")
+            logging.debug(f"Tavily search results: {data}")
             # Add search results
             for result in data.get("results", []):
                 results.append(
