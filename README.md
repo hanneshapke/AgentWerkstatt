@@ -67,13 +67,18 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents pow
 Run the interactive CLI:
 
 ```bash
+# Using default configuration (agent_config.yaml)
 python agent.py
+
+# Using a custom configuration file
+python agent.py --config /path/to/your/config.yaml
 ```
 
 Example conversation:
 ```
 🤖 AgentWerkstatt
 ==================================================
+Loading config from: agent_config.yaml
 
 I'm an example AgentWerkstatt assistant with web search capabilities!
 Ask me to search the web for information.
@@ -117,6 +122,25 @@ print(response)
 
 # Clear conversation history
 agent.llm.clear_history()
+```
+
+### Command Line Options
+
+The CLI supports the following command line arguments:
+
+- `--config` - Path to the agent configuration file (default: `agent_config.yaml`)
+- `--help` - Show help message and available options
+
+Examples:
+```bash
+# Use default configuration
+python agent.py
+
+# Use custom configuration file
+python agent.py --config my_custom_config.yaml
+
+# Show help
+python agent.py --help
 ```
 
 ## Architecture
