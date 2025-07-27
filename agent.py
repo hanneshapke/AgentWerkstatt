@@ -4,38 +4,34 @@ AgentWerkstatt, a minimalistic agentic framework
 """
 
 import json
-from typing import Dict
-from dotenv import load_dotenv
-from absl import logging
 
-from tools import TavilySearchTool
+from absl import logging
+from dotenv import load_dotenv
+
 from llms import ClaudeLLM
+from tools import ToolRegistry
 
 load_dotenv()
 
 logging.set_verbosity(logging.INFO)
 
+
 class ClaudeAgent:
     """Agent powered by Claude API"""
 
     def __init__(self, model: str = "claude-sonnet-4-20250514"):
-        self.tools = {
-            "websearch_tool": TavilySearchTool()
-        }
+        self.tool_registry = ToolRegistry(tools_dir="./tools")
+        self.tools = self.tool_registry.get_tools()
         self.llm = ClaudeLLM(model_name=model, tools=self.tools)
 
-    def execute_tool_call(self, tool_name: str, tool_input: Dict) -> Dict:
+        logging.info(f"Tools: {self.tools}")
+
+    def execute_tool_call(self, tool_name: str, tool_input: dict) -> dict:
         """Execute a tool call"""
 
-        logging.info(f"Executing tool call: {tool_name} with input: {tool_input}")
-
-        if tool_name not in self.tools:
-            logging.error(f"Unknown tool: {tool_name}")
-            return {"error": f"Unknown tool: {tool_name}"}
-
-        tool = self.tools[tool_name]
-        logging.info(f"Tool: {tool}")
-        logging.info(f"Tool input: {tool_input}")
+        tool = self.tool_registry.get_tool_by_name(tool_name)
+        if tool is None:
+            raise ValueError(f"Unknown tool: {tool_name}")
         return tool.execute(**tool_input)
 
     def process_request(self, user_input: str) -> str:
@@ -66,25 +62,17 @@ class ClaudeAgent:
 
                 # Execute the tool
                 result = self.execute_tool_call(tool_name, tool_input)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_id,
-                    "content": json.dumps(result)
-                })
+                tool_results.append(
+                    {"type": "tool_result", "tool_use_id": tool_id, "content": json.dumps(result)}
+                )
 
         # If there were tool calls, make another API request to get the final response
         if tool_results:
             # Add the assistant's message with tool calls
-            messages = messages + [{
-                "role": "assistant",
-                "content": assistant_message
-            }]
+            messages = messages + [{"role": "assistant", "content": assistant_message}]
 
             # Add tool results
-            messages = messages + [{
-                "role": "user",
-                "content": tool_results
-            }]
+            messages = messages + [{"role": "user", "content": tool_results}]
 
             # Get final response from Claude
             final_response = self.llm.make_api_request(messages)
@@ -99,10 +87,9 @@ class ClaudeAgent:
                     final_text += block["text"]
 
             # Update conversation history
-            self.llm.conversation_history = messages + [{
-                "role": "assistant",
-                "content": final_content
-            }]
+            self.llm.conversation_history = messages + [
+                {"role": "assistant", "content": final_content}
+            ]
 
             return final_text
         else:
@@ -111,12 +98,12 @@ class ClaudeAgent:
 
             # Update conversation history
             self.llm.conversation_history.append(user_message)
-            self.llm.conversation_history.append({
-                "role": "assistant",
-                "content": assistant_message
-            })
+            self.llm.conversation_history.append(
+                {"role": "assistant", "content": assistant_message}
+            )
 
             return response_text
+
 
 def main():
     """CLI interface for the AgentWerkstatt"""
