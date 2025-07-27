@@ -116,7 +116,10 @@ uv run python -c "from setuptools_scm import get_version; print(get_version())"
 
 # Test build locally
 uv tool install build
-uv tool run build
+uv tool run --from build pyproject-build
+
+# Check package quality
+uv tool run --from twine twine check dist/*
 
 # Test package installation locally
 pip install dist/*.whl

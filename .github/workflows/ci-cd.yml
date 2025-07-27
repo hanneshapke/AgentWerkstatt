@@ -76,18 +76,18 @@ jobs:
       with:
         version: "latest"
 
-    - name: Install build dependencies
+        - name: Install build dependencies
       run: |
         uv tool install build
 
     - name: Build package
       run: |
-        uv tool run build
+        uv tool run --from build pyproject-build
 
     - name: Check package
       run: |
         uv tool install twine
-        uv tool run twine check dist/*
+        uv tool run --from twine twine check dist/*
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -108,21 +108,22 @@ jobs:
         name: dist-${{ github.sha }}
         path: dist/
 
-    - name: Set up Python
+        - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
-    - name: Install twine
-      run: |
-        pip install twine
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
 
     - name: Publish to Test PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
       run: |
-        twine upload --repository testpypi dist/*
+        uv tool run --from twine twine upload --repository testpypi dist/*
 
   publish-prod:
     needs: build
@@ -137,18 +138,19 @@ jobs:
         name: dist-${{ github.sha }}
         path: dist/
 
-    - name: Set up Python
+        - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
-    - name: Install twine
-      run: |
-        pip install twine
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
 
     - name: Publish to PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        twine upload dist/*
+        uv tool run --from twine twine upload dist/*
