@@ -1,10 +1,10 @@
-from typing import Dict, List, Any
+from typing import Any
 
 
 class BaseLLM:
     """Abstract base class for all LLMs"""
 
-    def __init__(self, model_name: str, tools: Dict[str, Any]):
+    def __init__(self, model_name: str, tools: dict[str, Any]):
         self.model_name = model_name
         self.api_key = ""
         self.base_url = ""
@@ -13,16 +13,15 @@ class BaseLLM:
         self.tools = tools
         self.timeout = 30.0
 
-
     def clear_history(self):
         """Clear conversation history"""
         self.conversation_history = []
 
-    def make_api_request(self, messages: List[Dict]) -> str:
+    def make_api_request(self, messages: list[dict]) -> str:
         """Make an API request to the LLM"""
         raise NotImplementedError("Subclasses must implement this method")
 
-    def process_request(self, messages: List[Dict]) -> str:
+    def process_request(self, messages: list[dict]) -> str:
         """Process user request using LLM"""
         raise NotImplementedError("Subclasses must implement this method")
 

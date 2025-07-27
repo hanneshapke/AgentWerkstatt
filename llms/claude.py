@@ -1,16 +1,17 @@
 import os
-from typing import Dict, List
+
+import httpx
+from dotenv import load_dotenv
 
 from .base import BaseLLM
-from dotenv import load_dotenv
-import httpx
 
 load_dotenv()
+
 
 class ClaudeLLM(BaseLLM):
     """Claude LLM"""
 
-    def __init__(self, model_name: str, tools: Dict):
+    def __init__(self, model_name: str, tools: dict):
         super().__init__(model_name, tools)
 
         self.base_url = "https://api.anthropic.com/v1/messages"
@@ -28,20 +29,19 @@ Always be conversational and helpful."""
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable is required")
 
-
-    def make_api_request(self, messages: List[Dict] = None) -> Dict:
+    def make_api_request(self, messages: list[dict] = None) -> dict:
         """Make a request to the Claude API"""
         headers = {
             "Content-Type": "application/json",
             "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01"
+            "anthropic-version": "2023-06-01",
         }
 
         payload = {
             "model": self.model_name,
             "messages": messages,
             "max_tokens": 2000,
-            "system": self.system_prompt
+            "system": self.system_prompt,
         }
 
         if self.tools:
@@ -58,7 +58,7 @@ Always be conversational and helpful."""
         except Exception as e:
             return {"error": f"Unexpected error: {str(e)}"}
 
-    def process_request(self, messages: List[Dict]) -> str:
+    def process_request(self, messages: list[dict]) -> str:
         """
         Process user request using Claude API
 
