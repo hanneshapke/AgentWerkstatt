@@ -7,9 +7,9 @@ name = "agentwerkstatt"
 dynamic = ["version"]
 description = "AgentWerkstatt, a minimalistic agentic framework"
 readme = "README.md"
-license = {text = "MIT"}
+# license = {text = "MIT"}
 authors = [
-    {name = "Hannes Hapke", email = "hannes-dot-hapke-at-gmail-dot-com"}
+    {name = "Hannes Hapke"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
