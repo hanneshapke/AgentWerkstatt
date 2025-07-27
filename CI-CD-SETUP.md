@@ -106,6 +106,7 @@ uv run pre-commit
 2. **Import errors**: Ensure your package structure is correct and `__init__.py` files are present
 3. **Publishing fails**: Check that your API tokens are correctly set in GitHub secrets
 4. **Version conflicts**: Use `setuptools-scm` versioning - avoid manual version numbers
+5. **MyPy errors**: Currently using permissive MyPy settings for initial CI/CD setup. You can gradually make it stricter by updating `[tool.mypy]` in `pyproject.toml`
 
 ### Useful Commands
 
