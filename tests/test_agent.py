@@ -6,7 +6,6 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
-
 from agentwerkstatt import Agent, AgentConfig
 from agentwerkstatt.llms import MockLLM
 from agentwerkstatt.services.tool_executor import ToolExecutor

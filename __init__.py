@@ -5,6 +5,7 @@ This package provides a simple framework for building AI agents with tool capabi
 memory, and observability features.
 """
 
+from ._version import __version__
 from .agent import Agent
 from .config import AgentConfig, ConfigManager, ConfigValidator
 
@@ -13,8 +14,8 @@ __all__ = [
     "AgentConfig",
     "ConfigManager",
     "ConfigValidator",
+    "__version__",
 ]
 
 # Package metadata
-__version__ = "0.1.0"
 __author__ = "Hannes Hapke"

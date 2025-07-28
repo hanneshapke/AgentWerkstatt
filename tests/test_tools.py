@@ -3,9 +3,7 @@ Unit tests for the tools module
 """
 
 import os
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock
+import sys
 
 import pytest
 
