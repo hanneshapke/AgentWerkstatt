@@ -3,7 +3,6 @@
 import json
 import os
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
 
 import yaml
 from absl import app, flags, logging
@@ -13,15 +12,19 @@ from tools.discovery import ToolRegistry
 
 # Langfuse imports
 try:
-    from langfuse import observe, get_client
+    from langfuse import get_client, observe
+
     LANGFUSE_AVAILABLE = True
 except ImportError:
     LANGFUSE_AVAILABLE = False
+
     # Create dummy decorators if Langfuse is not available
     def observe(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator if args else decorator
+
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")
@@ -75,7 +78,9 @@ class Agent:
 
         if not LANGFUSE_AVAILABLE:
             if config.langfuse_enabled:
-                logging.warning("Langfuse is enabled in config but not installed. Install with: pip install langfuse")
+                logging.warning(
+                    "Langfuse is enabled in config but not installed. Install with: pip install langfuse"
+                )
             print("❌ Langfuse not available")
             return
 
@@ -92,11 +97,13 @@ class Agent:
         print(f"🔧 Missing variables: {missing_vars}")
 
         if missing_vars:
-            logging.warning(f"Langfuse is enabled but missing environment variables: {missing_vars}")
+            logging.warning(
+                f"Langfuse is enabled but missing environment variables: {missing_vars}"
+            )
             print(f"❌ Missing env vars: {missing_vars}")
             return
 
-                # Initialize Langfuse client with explicit configuration (v3 API)
+            # Initialize Langfuse client with explicit configuration (v3 API)
         try:
             from langfuse import Langfuse
 
@@ -107,24 +114,26 @@ class Agent:
             Langfuse(
                 public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
                 secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-                host=langfuse_host
+                host=langfuse_host,
             )
 
             # Get the client instance to test connection
             self.langfuse_client = get_client()
 
             # Test the connection
-            print(f"🔧 Testing authentication...")
+            print("🔧 Testing authentication...")
             auth_result = self.langfuse_client.auth_check()
             print(f"🔧 Auth result: {auth_result}")
             if not auth_result:
-                logging.error(f"Langfuse authentication failed. Check your credentials and host: {langfuse_host}")
-                print(f"❌ Authentication failed")
+                logging.error(
+                    f"Langfuse authentication failed. Check your credentials and host: {langfuse_host}"
+                )
+                print("❌ Authentication failed")
                 return
 
             self.langfuse_enabled = True
             logging.info(f"Langfuse tracing initialized successfully. Host: {langfuse_host}")
-            print(f"✅ Langfuse setup completed successfully!")
+            print("✅ Langfuse setup completed successfully!")
 
         except Exception as e:
             logging.error(f"Failed to initialize Langfuse: {e}")
@@ -135,7 +144,7 @@ class Agent:
         """Flush any pending Langfuse traces"""
         if self.langfuse_enabled and LANGFUSE_AVAILABLE:
             try:
-                if hasattr(self, 'langfuse_client'):
+                if hasattr(self, "langfuse_client"):
                     self.langfuse_client.flush()
                 logging.debug("Langfuse traces flushed successfully")
             except Exception as e:
@@ -154,9 +163,7 @@ class Agent:
         # Update Langfuse context if enabled (v3 API)
         if self.langfuse_enabled and LANGFUSE_AVAILABLE:
             self.langfuse_client.update_current_span(
-                name=f"Tool: {tool_name}",
-                input=tool_input,
-                metadata={"tool_name": tool_name}
+                name=f"Tool: {tool_name}", input=tool_input, metadata={"tool_name": tool_name}
             )
 
         tool = self.tool_registry.get_tool_by_name(tool_name)
@@ -191,8 +198,8 @@ class Agent:
                 input=user_input,
                 metadata={
                     "model": self.llm.model_name,
-                    "project": self.config.langfuse_project_name
-                }
+                    "project": self.config.langfuse_project_name,
+                },
             )
 
         user_message = {"role": "user", "content": user_input}

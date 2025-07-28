@@ -2,8 +2,11 @@
 """
 Test script to verify Langfuse connection to local docker container
 """
+
 import os
+
 from agent import Agent, AgentConfig
+
 
 def test_langfuse_connection():
     """Test Langfuse connection and trace creation"""
@@ -21,7 +24,12 @@ def test_langfuse_connection():
         return False
 
     # Check environment variables
-    required_vars = ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_HOST", "ANTHROPIC_API_KEY"]
+    required_vars = [
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "LANGFUSE_HOST",
+        "ANTHROPIC_API_KEY",
+    ]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
 
     if missing_vars:
@@ -45,7 +53,7 @@ def test_langfuse_connection():
         langfuse = Langfuse(
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
             secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            host=os.getenv("LANGFUSE_HOST")
+            host=os.getenv("LANGFUSE_HOST"),
         )
 
         auth_result = langfuse.auth_check()
@@ -65,7 +73,7 @@ def test_langfuse_connection():
         config = AgentConfig.from_yaml("agent_config.yaml")
 
         # Debug config parsing
-        print(f"📋 Config debug:")
+        print("📋 Config debug:")
         print(f"  langfuse_enabled: {config.langfuse_enabled}")
         print(f"  langfuse_project_name: {config.langfuse_project_name}")
         print(f"  verbose: {config.verbose}")
@@ -103,6 +111,7 @@ def test_langfuse_connection():
     print("   Navigate to 'Traces' to see your test trace.")
 
     return True
+
 
 if __name__ == "__main__":
     test_langfuse_connection()

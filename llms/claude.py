@@ -3,7 +3,7 @@ import os
 import httpx
 from absl import logging
 
-from .base import BaseLLM, observe, langfuse_context, LANGFUSE_AVAILABLE
+from .base import BaseLLM, observe
 
 
 class ClaudeLLM(BaseLLM):
@@ -53,8 +53,8 @@ class ClaudeLLM(BaseLLM):
             metadata={
                 "max_tokens": 2000,
                 "num_tools": len(self.tools) if self.tools else 0,
-                "system_prompt_length": len(self.system_prompt)
-            }
+                "system_prompt_length": len(self.system_prompt),
+            },
         )
 
         logging.debug(f"Making API request with payload: {payload}")
@@ -74,24 +74,18 @@ class ClaudeLLM(BaseLLM):
                         output=response_data.get("content", []),
                         usage_details={
                             "input": usage.get("input_tokens", 0),
-                            "output": usage.get("output_tokens", 0)
-                        }
+                            "output": usage.get("output_tokens", 0),
+                        },
                     )
 
                 return response_data
         except httpx.HTTPError as e:
             error_response = {"error": f"API request failed: {str(e)}"}
-            self._update_langfuse_observation(
-                output=error_response,
-                level="ERROR"
-            )
+            self._update_langfuse_observation(output=error_response, level="ERROR")
             return error_response
         except Exception as e:
             error_response = {"error": f"Unexpected error: {str(e)}"}
-            self._update_langfuse_observation(
-                output=error_response,
-                level="ERROR"
-            )
+            self._update_langfuse_observation(output=error_response, level="ERROR")
             return error_response
 
     @observe()
@@ -110,7 +104,7 @@ class ClaudeLLM(BaseLLM):
         self._update_langfuse_observation(
             name="Claude Request Processing",
             input={"messages": messages, "num_messages": len(messages)},
-            metadata={"model": self.model_name}
+            metadata={"model": self.model_name},
         )
 
         # Make initial API request
@@ -124,17 +118,12 @@ class ClaudeLLM(BaseLLM):
                 {"type": "text", "text": f"❌ Error communicating with Claude: {response['error']}"}
             ]
 
-            self._update_langfuse_observation(
-                output=error_message,
-                level="ERROR"
-            )
+            self._update_langfuse_observation(output=error_message, level="ERROR")
             return messages, error_message
 
         # Process the response
         assistant_message = response.get("content", [])
 
-        self._update_langfuse_observation(
-            output=assistant_message
-        )
+        self._update_langfuse_observation(output=assistant_message)
 
         return messages, assistant_message

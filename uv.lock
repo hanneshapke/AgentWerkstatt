@@ -16,12 +16,11 @@ wheels = [
 
 [[package]]
 name = "agentwerkstatt"
-version = "0.1.4.post2"
+version = "0.1.4.post3"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },
     { name = "httpx" },
-    { name = "langfuse" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
 ]
@@ -34,6 +33,9 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "ruff" },
+]
+tracing = [
+    { name = "langfuse" },
 ]
 
 [package.dev-dependencies]
@@ -53,7 +55,7 @@ dev = [
 requires-dist = [
     { name = "absl-py", specifier = ">=1.0.0" },
     { name = "httpx", specifier = ">=0.24.0" },
-    { name = "langfuse", specifier = ">=2.50.0" },
+    { name = "langfuse", marker = "extra == 'tracing'", specifier = ">=2.50.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },

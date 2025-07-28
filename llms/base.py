@@ -1,4 +1,5 @@
 from typing import Any
+
 from dotenv import load_dotenv
 
 # Load environment variables once at module level
@@ -7,19 +8,23 @@ load_dotenv()
 # Langfuse imports with fallback - shared by all LLM implementations
 try:
     from langfuse.decorators import langfuse_context, observe
+
     LANGFUSE_AVAILABLE = True
 except ImportError:
     LANGFUSE_AVAILABLE = False
+
     # Create dummy decorators if Langfuse is not available
     def observe(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator if args else decorator
 
     # Create dummy langfuse_context
     class DummyLangfuseContext:
         def update_current_observation(self, **kwargs):
             pass
+
         def update_current_span(self, **kwargs):
             pass
 
