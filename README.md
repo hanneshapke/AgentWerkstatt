@@ -9,7 +9,7 @@ Why do we need another agentic framework? I felt that all other frameworks were 
 
 ## Overview
 
-AgentWerkstatt is a lightweight, extensible framework for creating AI agents powered by Claude (Anthropic). It features a modular architecture with pluggable LLM providers and tools, making it easy to build conversational agents with access to external capabilities like web search.
+AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It is powered by Claude (Anthropic), but it is highly extensible and can be used with other LLMs. It features a modular architecture with pluggable LLM providers and tools, making it easy to build conversational agents with access to external capabilities like web search. More LLMs will be supported in the future.
 
 ## Features
 
@@ -330,6 +330,17 @@ Core dependencies:
 - `python-dotenv` - Environment variable management
 - `absl-py` - Google's Python common libraries
 - `PyYAML` - YAML configuration file support
+
+## Roadmap
+
+Check out our [ROADMAP.md](ROADMAP.md) to see what's planned for future releases, including:
+
+- 🧠 **Multi-LLM Support** - OpenAI, Google AI, and local model integration
+- 🔗 **3rd Party Integrations** - Memory providers, observability tools, and more
+- 🛠️ **Advanced Tools** - API discovery, file operations, and code execution
+- 🤖 **Agent Intelligence** - Self-reflection, planning, and reasoning capabilities
+
+We welcome feedback and contributions to help shape the project's direction!
 
 ## Contributing
 
