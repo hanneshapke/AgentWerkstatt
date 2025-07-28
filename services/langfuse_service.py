@@ -113,9 +113,7 @@ class LangfuseService:
 
             # Create a new span for this request using the correct v3.2.1 API
             self._current_span = self._client.start_span(
-                name="Agent Request",
-                input=input_data,
-                metadata=metadata
+                name="Agent Request", input=input_data, metadata=metadata
             )
 
             # Update the trace with metadata using the span
@@ -123,13 +121,15 @@ class LangfuseService:
                 name="Agent Processing",
                 session_id=metadata.get("session_id"),
                 user_id=metadata.get("user_id"),
-                tags=["agent", "request"]
+                tags=["agent", "request"],
             )
 
             # Store reference to the trace ID for child spans
             self._current_trace = self._current_span  # The span provides access to trace operations
 
-            logging.debug(f"Created span {self._current_span.id} with trace {self._current_span.trace_id}")
+            logging.debug(
+                f"Created span {self._current_span.id} with trace {self._current_span.trace_id}"
+            )
 
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
@@ -144,7 +144,7 @@ class LangfuseService:
             with self._current_span.start_as_current_span(
                 name=f"Tool: {tool_name}",
                 input=tool_input,
-                metadata={"tool_name": tool_name, "type": "tool_execution"}
+                metadata={"tool_name": tool_name, "type": "tool_execution"},
             ) as tool_span:
                 # The span will automatically end when exiting the context
                 tool_span.update(output={"status": "executed"})

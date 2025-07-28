@@ -95,7 +95,7 @@ You have {num_tools} tools at your disposal:
         if LANGFUSE_AVAILABLE:
             try:
                 langfuse_context.update_current_observation(**kwargs)
-            except Exception as e:
+            except Exception:
                 # Silently handle cases where there's no active span context
                 # This can happen when @observe decorators aren't properly set up
                 # or when called outside of an observed function
