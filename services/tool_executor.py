@@ -1,10 +1,9 @@
 import json
+from absl import logging
 from typing import Any
 
-from absl import logging
-
-from interfaces import ObservabilityServiceProtocol
-from tools.discovery import ToolRegistry
+from ..interfaces import ObservabilityServiceProtocol
+from ..tools.discovery import ToolRegistry
 
 
 class ToolExecutor:

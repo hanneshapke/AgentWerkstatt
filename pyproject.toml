@@ -50,7 +50,7 @@ dev = [
 ]
 
 [project.scripts]
-agentwerkstatt = "agent:cli"
+agentwerkstatt = "agentwerkstatt.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/hanneshapke/agentwerkstatt"
@@ -60,10 +60,14 @@ Repository = "https://github.com/hanneshapke/agentwerkstatt.git"
 "Discussions" = "https://github.com/hanneshapke/agentwerkstatt/discussions"
 "Contributing" = "https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["*"]
-exclude = ["tests*"]
+[tool.setuptools]
+packages = ["agentwerkstatt"]
+
+[tool.setuptools.package-dir]
+agentwerkstatt = "."
+
+[tool.setuptools.package-data]
+agentwerkstatt = ["**/config.yaml", "**/docker-compose.yaml", "**/Dockerfile*", "**/*.md"]
 
 [tool.setuptools_scm]
 # Enable setuptools-scm for dynamic versioning from git tags

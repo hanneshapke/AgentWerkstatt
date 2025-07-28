@@ -2,8 +2,8 @@
 
 from absl import app, flags, logging
 
-from agent import Agent
-from config import ConfigManager
+from .agent import Agent
+from .config import ConfigManager
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")

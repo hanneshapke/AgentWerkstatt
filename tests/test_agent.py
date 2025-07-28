@@ -1,14 +1,15 @@
-"""Tests for the refactored Agent class demonstrating improved testability"""
+"""
+Unit tests for the Agent class
+"""
 
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
-from agent import Agent
-from config import AgentConfig
-from llms import MockLLM
-from services.tool_executor import ToolExecutor
+from agentwerkstatt import Agent, AgentConfig
+from agentwerkstatt.llms import MockLLM
+from agentwerkstatt.services.tool_executor import ToolExecutor
 
 
 class MockMemoryService:
