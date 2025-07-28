@@ -9,6 +9,7 @@ from interfaces import (
     ObservabilityServiceProtocol,
     ToolExecutorProtocol,
 )
+from llms.base import BaseLLM
 from llms.claude import ClaudeLLM
 from services.conversation_handler import ConversationHandler
 from services.langfuse_service import LangfuseService, NoOpObservabilityService
@@ -25,6 +26,7 @@ class Agent:
     def __init__(
         self,
         config: AgentConfig,
+        llm: BaseLLM | None = None,
         memory_service: MemoryServiceProtocol | None = None,
         observability_service: ObservabilityServiceProtocol | None = None,
         tool_executor: ToolExecutorProtocol | None = None,
@@ -35,9 +37,7 @@ class Agent:
         # Initialize tool registry and LLM
         self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
         self.tools = self.tool_registry.get_tools()
-        self.llm = ClaudeLLM(
-            agent_objective=config.agent_objective, model_name=config.model, tools=self.tools
-        )
+        self.llm = llm or self._create_llm()
 
         # Initialize services with dependency injection
         self.memory_service = memory_service or self._create_memory_service()
@@ -46,6 +46,14 @@ class Agent:
         self.conversation_handler = conversation_handler or self._create_conversation_handler()
 
         logging.debug(f"Tools: {self.tools}")
+
+    def _create_llm(self) -> BaseLLM:
+        """Create LLM based on configuration"""
+        return ClaudeLLM(
+            agent_objective=self.config.agent_objective,
+            model_name=self.config.model,
+            tools=self.tools,
+        )
 
     def _create_memory_service(self) -> MemoryServiceProtocol:
         """Create memory service based on configuration"""

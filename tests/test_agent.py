@@ -7,6 +7,7 @@ import pytest
 
 from agent import Agent
 from config import AgentConfig
+from llms import MockLLM
 from services.tool_executor import ToolExecutor
 
 
@@ -113,6 +114,7 @@ def mock_config():
 def mock_services():
     """Create mock services for testing"""
     return {
+        "llm": MockLLM(),
         "memory_service": MockMemoryService(),
         "observability_service": MockObservabilityService(),
         "tool_executor": MockToolExecutor(),
@@ -122,6 +124,7 @@ def mock_services():
 
 def test_agent_initialization_with_mocks(mock_config):
     """Test that agent can be initialized with mock dependencies"""
+    llm = MockLLM()
     memory_service = MockMemoryService()
     observability_service = MockObservabilityService()
     tool_executor = MockToolExecutor()
@@ -129,6 +132,7 @@ def test_agent_initialization_with_mocks(mock_config):
 
     agent = Agent(
         config=mock_config,
+        llm=llm,
         memory_service=memory_service,
         observability_service=observability_service,
         tool_executor=tool_executor,
@@ -154,6 +158,7 @@ def test_process_request_with_mocks(mock_config, mock_services):
 
 def test_memory_enhancement_in_process_request(mock_config):
     """Test that memory enhancement works correctly"""
+    llm = MockLLM()
     memory_service = MockMemoryService()
     observability_service = MockObservabilityService()
     tool_executor = MockToolExecutor()
@@ -161,6 +166,7 @@ def test_memory_enhancement_in_process_request(mock_config):
 
     agent = Agent(
         config=mock_config,
+        llm=llm,
         memory_service=memory_service,
         observability_service=observability_service,
         tool_executor=tool_executor,
@@ -182,18 +188,20 @@ def test_observability_metadata(mock_config, mock_services):
     observed = mock_services["observability_service"].observed_requests[0]
     metadata = observed[1]
 
-    assert metadata["model"] == mock_config.model
+    assert metadata["model"] == mock_services["llm"].model_name
     assert metadata["project"] == mock_config.langfuse_project_name
     assert metadata["memory_enabled"] == mock_services["memory_service"].is_enabled
 
 
 def test_agent_with_disabled_services(mock_config):
     """Test agent behavior when services are disabled"""
+    llm = MockLLM()
     memory_service = MockMemoryService(enabled=False)
     observability_service = MockObservabilityService(enabled=False)
 
     agent = Agent(
         config=mock_config,
+        llm=llm,
         memory_service=memory_service,
         observability_service=observability_service,
         tool_executor=MockToolExecutor(),
