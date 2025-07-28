@@ -1,0 +1,31 @@
+version: "1.0"
+
+llm:
+  provider: openai
+  config:
+    model: gpt-4o-mini
+    temperature: 0.2
+    max_tokens: 1500
+
+embedder:
+  provider: openai
+  config:
+    model: text-embedding-3-small
+
+vector_store:
+  provider: pgvector
+  config:
+    host: postgres
+    port: 5432
+    user: postgres
+    password: postgres
+    dbname: postgres
+
+graph_store:
+  provider: neo4j
+  config:
+    url: bolt://neo4j:7687
+    username: neo4j
+    password: mem0graph
+
+history_db_path: /app/.mem0/history.db
