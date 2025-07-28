@@ -8,7 +8,12 @@ model: "claude-sonnet-4-20250514"
 tools_dir: "./tools"
 
 # Logging Configuration
-verbose: true
+verbose: false
+
+# Langfuse Configuration
+langfuse:
+  enabled: true  # Set to false to disable Langfuse tracing
+  project_name: "agentwerkstatt"  # Optional: Name for organizing traces
 
 # Agent Objective/System Prompt
 agent_objective: |

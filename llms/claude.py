@@ -2,50 +2,29 @@ import os
 
 import httpx
 from absl import logging
-from dotenv import load_dotenv
 
-from .base import BaseLLM
-
-load_dotenv()
+from .base import BaseLLM, observe
 
 
 class ClaudeLLM(BaseLLM):
     """Claude LLM"""
 
     def __init__(self, agent_objective: str, model_name: str, tools: dict):
-        super().__init__(model_name, tools)
+        super().__init__(model_name, tools, agent_objective)
 
         self.base_url = "https://api.anthropic.com/v1/messages"
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        self.agent_objective = agent_objective
-        self.base_system_prompt = """
-{agent_objective}
 
-You have {num_tools} tools at your disposal:
-
-{tool_descriptions}
-""".strip()
-
-        if not self.api_key:
-            raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+        self._validate_api_key("ANTHROPIC_API_KEY")
 
     @property
     def system_prompt(self) -> str:
         """Get the system prompt"""
-
-        tool_descriptions = ""
-        for tool in self.tools:
-            tool_descriptions += (
-                f"{tool.get_name()} ({tool.get_function_name()}): {tool.description}\n"
-            )
-        _system_prompt = self.base_system_prompt.format(
-            agent_objective=self.agent_objective,
-            num_tools=len(self.tools),
-            tool_descriptions=tool_descriptions,
-        )
+        _system_prompt = self._format_system_prompt()
         logging.debug(f"System prompt: {_system_prompt}")
         return _system_prompt
 
+    @observe(as_type="generation")
     def make_api_request(self, messages: list[dict] = None) -> dict:
         """Make a request to the Claude API"""
 
@@ -62,9 +41,21 @@ You have {num_tools} tools at your disposal:
             "system": self.system_prompt,
         }
 
-        if self.tools:
-            tool_schemas = [tool.get_schema() for tool in self.tools]
+        tool_schemas = self._get_tool_schemas()
+        if tool_schemas:
             payload["tools"] = tool_schemas
+
+        # Update Langfuse context if available
+        self._update_langfuse_observation(
+            name="Claude API Call",
+            model=self.model_name,
+            input=messages,
+            metadata={
+                "max_tokens": 2000,
+                "num_tools": len(self.tools) if self.tools else 0,
+                "system_prompt_length": len(self.system_prompt),
+            },
+        )
 
         logging.debug(f"Making API request with payload: {payload}")
         logging.debug(f"Headers: {headers}")
@@ -72,14 +63,32 @@ You have {num_tools} tools at your disposal:
         try:
             with httpx.Client(timeout=self.timeout) as client:
                 response = client.post(self.base_url, json=payload, headers=headers)
-                logging.debug(f"Response: {response.json()}")
+                response_data = response.json()
+                logging.debug(f"Response: {response_data}")
                 response.raise_for_status()
-                return response.json()
-        except httpx.HTTPError as e:
-            return {"error": f"API request failed: {str(e)}"}
-        except Exception as e:
-            return {"error": f"Unexpected error: {str(e)}"}
 
+                # Update Langfuse with response data
+                if "usage" in response_data:
+                    usage = response_data.get("usage", {})
+                    self._update_langfuse_observation(
+                        output=response_data.get("content", []),
+                        usage_details={
+                            "input": usage.get("input_tokens", 0),
+                            "output": usage.get("output_tokens", 0),
+                        },
+                    )
+
+                return response_data
+        except httpx.HTTPError as e:
+            error_response = {"error": f"API request failed: {str(e)}"}
+            self._update_langfuse_observation(output=error_response, level="ERROR")
+            return error_response
+        except Exception as e:
+            error_response = {"error": f"Unexpected error: {str(e)}"}
+            self._update_langfuse_observation(output=error_response, level="ERROR")
+            return error_response
+
+    @observe()
     def process_request(self, messages: list[dict]) -> tuple[list[dict], list]:
         """
         Process user request using Claude API
@@ -90,6 +99,14 @@ You have {num_tools} tools at your disposal:
         Returns:
             Tuple of (updated_messages, assistant_message_content)
         """
+
+        # Update Langfuse context if available
+        self._update_langfuse_observation(
+            name="Claude Request Processing",
+            input={"messages": messages, "num_messages": len(messages)},
+            metadata={"model": self.model_name},
+        )
+
         # Make initial API request
         logging.debug(f"Making API request with {len(messages)} messages")
         logging.debug(f"Last 2 messages: {messages[-2:] if len(messages) >= 2 else messages}")
@@ -100,8 +117,13 @@ You have {num_tools} tools at your disposal:
             error_message = [
                 {"type": "text", "text": f"❌ Error communicating with Claude: {response['error']}"}
             ]
+
+            self._update_langfuse_observation(output=error_message, level="ERROR")
             return messages, error_message
 
         # Process the response
         assistant_message = response.get("content", [])
+
+        self._update_langfuse_observation(output=assistant_message)
+
         return messages, assistant_message

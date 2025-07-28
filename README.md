@@ -17,6 +17,7 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It
 - 🔧 **Tool System** - Pluggable tool architecture with automatic tool discovery
 - 💬 **Conversation Management** - Built-in conversation history and context management
 - 🌐 **Web Search** - Integrated Tavily API for real-time web information retrieval
+- 📊 **Observability** - Optional Langfuse integration for comprehensive tracing and analytics
 - 🖥️ **CLI Interface** - Ready-to-use command-line interface
 - ⚡ **Lightweight** - Minimal dependencies and clean architecture
 
@@ -38,8 +39,11 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It
 
 2. **Install dependencies:**
    ```bash
-   # Using uv
+   # Basic installation
    uv sync
+
+   # With optional Langfuse tracing support
+   uv sync --extra tracing
    ```
 
 3. **Set up environment variables:**
@@ -193,6 +197,9 @@ The `Agent` class orchestrates:
 
 - `ANTHROPIC_API_KEY` - Required for Claude API access
 - `TAVILY_API_KEY` - Optional, for web search functionality
+- `LANGFUSE_PUBLIC_KEY` - Optional, for Langfuse tracing integration
+- `LANGFUSE_SECRET_KEY` - Optional, for Langfuse tracing integration
+- `LANGFUSE_HOST` - Optional, Langfuse host URL (defaults to cloud.langfuse.com)
 
 ### Configuration File
 
@@ -207,6 +214,11 @@ tools_dir: "./tools"
 
 # Logging Configuration
 verbose: true
+
+# Langfuse Configuration (Optional)
+langfuse:
+  enabled: true  # Set to false to disable tracing
+  project_name: "agentwerkstatt"
 
 # Agent Objective/System Prompt
 agent_objective: |
@@ -223,6 +235,30 @@ To use a different model programmatically:
 config = AgentConfig(model="claude-sonnet-4-20250514")
 agent = Agent(config)
 ```
+
+### Observability with Langfuse
+
+AgentWerkstatt includes optional integration with [Langfuse](https://langfuse.com) for comprehensive observability:
+
+- **Automatic Tracing**: All agent interactions, LLM calls, and tool executions are automatically traced
+- **Performance Monitoring**: Track costs, latency, and token usage
+- **Debugging**: Detailed execution flow for troubleshooting
+- **Analytics**: Historical data and performance insights
+
+To enable Langfuse tracing:
+
+1. Install the tracing dependencies: `uv sync --extra tracing`
+2. Set up your Langfuse credentials (see [Environment Variables](#environment-variables))
+3. Enable tracing in your configuration:
+   ```yaml
+   langfuse:
+     enabled: true
+     project_name: "your-project-name"
+   ```
+
+**Note**: Langfuse is completely optional. AgentWerkstatt works perfectly without it.
+
+For detailed setup instructions, see [LANGFUSE_INTEGRATION.md](./LANGFUSE_INTEGRATION.md).
 
 ## Development
 
