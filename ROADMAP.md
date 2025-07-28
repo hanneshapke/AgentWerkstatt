@@ -5,8 +5,8 @@ This roadmap outlines the planned features and improvements for AgentWerkstatt, 
 ## 🚀 v0.2.0 - Foundation Improvements
 
 ### Core Framework
-- [ ] **Configuration Validation**: Schema validation for agent_config.yaml
-- [ ] **Memory Management**: Basic memory and context management using mem0.
+- [x] **Configuration Validation**: Schema validation for agent_config.yaml
+- [x] **Memory Management**: Basic memory and context management using mem0.
 - [ ] **Self-Reflection**: Agent self-evaluation and improvement
 - [ ] **Planning & Reasoning**: Multi-step task planning
 
@@ -17,9 +17,9 @@ This roadmap outlines the planned features and improvements for AgentWerkstatt, 
 - [ ] **LLM Router**: Automatic model selection based on task complexity
 
 ### 3rd Party Integrations
-- [ ] **Tavily**: Web search
-- [ ] **Memory Provider**: Find a memory provider and integrate it in Docker setup
-- [ ] **Agent Observability**: Find a way to observe agent behavior and performance
+- [x] **Tavily**: Web search
+- [x] **Memory Provider**: Find a memory provider and integrate it in Docker setup
+- [x] **Agent Observability**: Find a way to observe agent behavior and performance
 
 ### Bug Fixes
 - [ ] **MyPy Compliance**: Fix all type checking issues
