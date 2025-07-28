@@ -4,6 +4,8 @@ LLMs package for AgentWerkstatt
 Contains base LLM class and all LLM implementations
 """
 
+from llms.base import BaseLLM
 from llms.claude import ClaudeLLM
+from llms.mock import MockLLM
 
-__all__ = ["ClaudeLLM"]
+__all__ = ["BaseLLM", "ClaudeLLM", "MockLLM"]
