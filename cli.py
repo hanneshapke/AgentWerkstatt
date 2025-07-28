@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import logging
-
-from absl import app, flags
+from absl import app, flags, logging
 
 from agent_refactored import Agent
 from config import ConfigManager

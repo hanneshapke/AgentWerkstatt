@@ -1,6 +1,8 @@
-from typing import Any, Protocol
+from abc import ABC, abstractmethod
+from typing import Protocol, Dict, Any, List, Optional, TYPE_CHECKING
 
-from config import AgentConfig
+if TYPE_CHECKING:
+    from config import AgentConfig
 
 
 class MemoryServiceProtocol(Protocol):
@@ -28,11 +30,11 @@ class ObservabilityServiceProtocol(Protocol):
         """Check if observability service is enabled"""
         ...
 
-    def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
+    def observe_request(self, input_data: str, metadata: Dict[str, Any]) -> None:
         """Start observing a request"""
         ...
 
-    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
+    def observe_tool_execution(self, tool_name: str, tool_input: Dict[str, Any]) -> None:
         """Observe tool execution"""
         ...
 
@@ -48,7 +50,7 @@ class ObservabilityServiceProtocol(Protocol):
 class ToolExecutorProtocol(Protocol):
     """Protocol for tool execution implementations"""
 
-    def execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+    def execute_tool(self, tool_name: str, tool_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool with given input"""
         ...
 
@@ -73,6 +75,6 @@ class ConversationHandlerProtocol(Protocol):
 class ConfigValidatorProtocol(Protocol):
     """Protocol for configuration validation"""
 
-    def validate(self, config: AgentConfig) -> list[str]:
+    def validate(self, config: "AgentConfig") -> List[str]:
         """Validate configuration and return list of errors"""
         ...
