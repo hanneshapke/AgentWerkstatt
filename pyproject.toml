@@ -48,6 +48,9 @@ dev = [
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
 ]
+observability = [
+    "langfuse>=3.2.1",
+]
 
 [project.scripts]
 agentwerkstatt = "agentwerkstatt.cli:cli"

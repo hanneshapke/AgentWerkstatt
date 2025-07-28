@@ -18,7 +18,7 @@ wheels = [
 
 [[package]]
 name = "agentwerkstatt"
-version = "0.1.7.post0"
+version = "0.1.8.post0"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },
@@ -38,6 +38,9 @@ dev = [
 ]
 memory = [
     { name = "mem0ai" },
+]
+observability = [
+    { name = "langfuse" },
 ]
 tracing = [
     { name = "langfuse" },
@@ -60,6 +63,7 @@ dev = [
 requires-dist = [
     { name = "absl-py", specifier = ">=1.0.0" },
     { name = "httpx", specifier = ">=0.24.0" },
+    { name = "langfuse", marker = "extra == 'observability'", specifier = ">=3.2.1" },
     { name = "langfuse", marker = "extra == 'tracing'", specifier = ">=3.2.1" },
     { name = "mem0ai", marker = "extra == 'memory'", specifier = ">=0.1.115" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },

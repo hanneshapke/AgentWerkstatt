@@ -91,9 +91,15 @@ You have {num_tools} tools at your disposal:
         return [tool.get_schema() for tool in self.tools] if self.tools else []
 
     def _update_langfuse_observation(self, **kwargs) -> None:
-        """Update Langfuse observation if available"""
+        """Update Langfuse observation if available and has active context"""
         if LANGFUSE_AVAILABLE:
-            langfuse_context.update_current_observation(**kwargs)
+            try:
+                langfuse_context.update_current_observation(**kwargs)
+            except Exception as e:
+                # Silently handle cases where there's no active span context
+                # This can happen when @observe decorators aren't properly set up
+                # or when called outside of an observed function
+                pass
 
     def make_api_request(self, messages: list[dict]) -> str:
         """Make an API request to the LLM"""

@@ -27,6 +27,8 @@ class LangfuseService:
         self.config = config
         self._client = None
         self._enabled = False
+        self._current_trace = None
+        self._current_span = None
         self._initialize_langfuse()
 
     @property
@@ -102,37 +104,77 @@ class LangfuseService:
             self._enabled = False
 
     def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
-        """Start observing a request"""
+        """Start observing a request by creating a new trace and span"""
         if not self._enabled or not self._client:
             return
 
         try:
             logging.debug("Creating Langfuse trace for agent request")
-            self._client.update_current_span(
-                name="Agent Request", input=input_data, metadata=metadata
+
+            # Create a new span for this request using the correct v3.2.1 API
+            self._current_span = self._client.start_span(
+                name="Agent Request",
+                input=input_data,
+                metadata=metadata
             )
+
+            # Update the trace with metadata using the span
+            self._current_span.update_trace(
+                name="Agent Processing",
+                session_id=metadata.get("session_id"),
+                user_id=metadata.get("user_id"),
+                tags=["agent", "request"]
+            )
+
+            # Store reference to the trace ID for child spans
+            self._current_trace = self._current_span  # The span provides access to trace operations
+
+            logging.debug(f"Created span {self._current_span.id} with trace {self._current_span.trace_id}")
+
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
 
     def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
-        """Observe tool execution"""
-        if not self._enabled or not self._client:
+        """Observe tool execution by creating a child span"""
+        if not self._enabled or not self._client or not self._current_span:
             return
 
         try:
-            self._client.update_current_span(
-                name=f"Tool: {tool_name}", input=tool_input, metadata={"tool_name": tool_name}
-            )
+            # Create a child span for tool execution using the correct v3.2.1 API
+            with self._current_span.start_as_current_span(
+                name=f"Tool: {tool_name}",
+                input=tool_input,
+                metadata={"tool_name": tool_name, "type": "tool_execution"}
+            ) as tool_span:
+                # The span will automatically end when exiting the context
+                tool_span.update(output={"status": "executed"})
+
+            logging.debug(f"Created tool span for {tool_name}")
+
         except Exception as e:
             logging.error(f"Failed to observe tool execution: {e}")
 
     def update_observation(self, output: Any) -> None:
-        """Update current observation with output"""
-        if not self._enabled or not self._client:
+        """Update current observation with output and end the span"""
+        if not self._enabled or not self._client or not self._current_span:
             return
 
         try:
-            self._client.update_current_span(output=output)
+            # Update the current span with the final output
+            self._current_span.update(output=output)
+
+            # Update the trace with the final output
+            self._current_span.update_trace(output=output)
+
+            # End the current span
+            self._current_span.end()
+
+            logging.debug("Updated observation with final output and ended span")
+
+            # Clear current span and trace
+            self._current_span = None
+            self._current_trace = None
+
         except Exception as e:
             logging.error(f"Failed to update observation: {e}")
 
