@@ -1,13 +1,27 @@
 #!/usr/bin/env python3
 
 import json
+import os
 from dataclasses import dataclass
+from typing import Optional, Dict, Any
 
 import yaml
 from absl import app, flags, logging
 
 from llms.claude import ClaudeLLM
 from tools.discovery import ToolRegistry
+
+# Langfuse imports
+try:
+    from langfuse import observe, get_client
+    LANGFUSE_AVAILABLE = True
+except ImportError:
+    LANGFUSE_AVAILABLE = False
+    # Create dummy decorators if Langfuse is not available
+    def observe(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator if args else decorator
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")
@@ -18,18 +32,29 @@ class AgentConfig:
     @classmethod
     def from_yaml(cls, file_path: str):
         with open(file_path) as f:
-            return cls(**yaml.safe_load(f))
+            data = yaml.safe_load(f)
+
+        # Handle nested langfuse config - flatten it into the main config
+        langfuse_data = data.pop("langfuse", {})
+        if langfuse_data:
+            data["langfuse_enabled"] = langfuse_data.get("enabled", False)
+            data["langfuse_project_name"] = langfuse_data.get("project_name", "agentwerkstatt")
+
+        return cls(**data)
 
     model: str = ""
     tools_dir: str = ""
     verbose: bool = False
     agent_objective: str = ""
+    langfuse_enabled: bool = False
+    langfuse_project_name: str = "agentwerkstatt"
 
 
 class Agent:
     """Minimalistic agent"""
 
     def __init__(self, config: AgentConfig):
+        self.config = config
         self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
         self.tools = self.tool_registry.get_tools()
         self.llm = ClaudeLLM(
@@ -37,8 +62,84 @@ class Agent:
         )
 
         self._set_logging_verbosity(config.verbose)
+        self._setup_langfuse(config)
 
         logging.debug(f"Tools: {self.tools}")
+
+    def _setup_langfuse(self, config: AgentConfig):
+        """Initialize Langfuse if enabled and available"""
+        self.langfuse_enabled = False
+
+        print(f"🔧 Langfuse setup - LANGFUSE_AVAILABLE: {LANGFUSE_AVAILABLE}")
+        print(f"🔧 Langfuse setup - config.langfuse_enabled: {config.langfuse_enabled}")
+
+        if not LANGFUSE_AVAILABLE:
+            if config.langfuse_enabled:
+                logging.warning("Langfuse is enabled in config but not installed. Install with: pip install langfuse")
+            print("❌ Langfuse not available")
+            return
+
+        if not config.langfuse_enabled:
+            logging.debug("Langfuse tracing is disabled")
+            print("❌ Langfuse disabled in config")
+            return
+
+        # Check for required environment variables
+        required_env_vars = ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+
+        print(f"🔧 Checking environment variables: {required_env_vars}")
+        print(f"🔧 Missing variables: {missing_vars}")
+
+        if missing_vars:
+            logging.warning(f"Langfuse is enabled but missing environment variables: {missing_vars}")
+            print(f"❌ Missing env vars: {missing_vars}")
+            return
+
+                # Initialize Langfuse client with explicit configuration (v3 API)
+        try:
+            from langfuse import Langfuse
+
+            # Get host configuration
+            langfuse_host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+
+            # Initialize the singleton client (v3 pattern)
+            Langfuse(
+                public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+                secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+                host=langfuse_host
+            )
+
+            # Get the client instance to test connection
+            self.langfuse_client = get_client()
+
+            # Test the connection
+            print(f"🔧 Testing authentication...")
+            auth_result = self.langfuse_client.auth_check()
+            print(f"🔧 Auth result: {auth_result}")
+            if not auth_result:
+                logging.error(f"Langfuse authentication failed. Check your credentials and host: {langfuse_host}")
+                print(f"❌ Authentication failed")
+                return
+
+            self.langfuse_enabled = True
+            logging.info(f"Langfuse tracing initialized successfully. Host: {langfuse_host}")
+            print(f"✅ Langfuse setup completed successfully!")
+
+        except Exception as e:
+            logging.error(f"Failed to initialize Langfuse: {e}")
+            print(f"❌ Langfuse setup failed: {e}")
+            return
+
+    def flush_langfuse_traces(self):
+        """Flush any pending Langfuse traces"""
+        if self.langfuse_enabled and LANGFUSE_AVAILABLE:
+            try:
+                if hasattr(self, 'langfuse_client'):
+                    self.langfuse_client.flush()
+                logging.debug("Langfuse traces flushed successfully")
+            except Exception as e:
+                logging.error(f"Failed to flush Langfuse traces: {e}")
 
     def _set_logging_verbosity(self, verbose: bool):
         if verbose:
@@ -46,14 +147,31 @@ class Agent:
         else:
             logging.set_verbosity(logging.ERROR)
 
+    @observe(name="tool-execution")
     def execute_tool_call(self, tool_name: str, tool_input: dict) -> dict:
         """Execute a tool call"""
+
+        # Update Langfuse context if enabled (v3 API)
+        if self.langfuse_enabled and LANGFUSE_AVAILABLE:
+            self.langfuse_client.update_current_span(
+                name=f"Tool: {tool_name}",
+                input=tool_input,
+                metadata={"tool_name": tool_name}
+            )
 
         tool = self.tool_registry.get_tool_by_name(tool_name)
         if tool is None:
             raise ValueError(f"Unknown tool: {tool_name}")
-        return tool.execute(**tool_input)
 
+        result = tool.execute(**tool_input)
+
+        # Update with output if Langfuse is enabled (v3 API)
+        if self.langfuse_enabled and LANGFUSE_AVAILABLE:
+            self.langfuse_client.update_current_span(output=result)
+
+        return result
+
+    @observe(name="agent-request")
     def process_request(self, user_input: str) -> str:
         """
         Process user request using Claude API
@@ -64,6 +182,18 @@ class Agent:
         Returns:
             Response string from Claude
         """
+
+        # Update Langfuse context if enabled (v3 API)
+        if self.langfuse_enabled and LANGFUSE_AVAILABLE:
+            logging.debug("Creating Langfuse trace for agent request")
+            self.langfuse_client.update_current_span(
+                name="Agent Request",
+                input=user_input,
+                metadata={
+                    "model": self.llm.model_name,
+                    "project": self.config.langfuse_project_name
+                }
+            )
 
         user_message = {"role": "user", "content": user_input}
         messages = self.llm.conversation_history + [user_message]
@@ -127,6 +257,10 @@ class Agent:
                 {"role": "assistant", "content": final_content}
             ]
 
+            # Update Langfuse with final output
+            if self.langfuse_enabled and LANGFUSE_AVAILABLE:
+                self.langfuse_client.update_current_span(output=final_text)
+
             return final_text
         else:
             # No tool calls, return the text response
@@ -137,6 +271,10 @@ class Agent:
             self.llm.conversation_history.append(
                 {"role": "assistant", "content": assistant_message}
             )
+
+            # Update Langfuse with final output
+            if self.langfuse_enabled and LANGFUSE_AVAILABLE:
+                self.langfuse_client.update_current_span(output=response_text)
 
             return response_text
 
@@ -167,6 +305,11 @@ def main(argv):
 
             if user_input.lower() in ["quit", "exit", "q"]:
                 print("👋 Goodbye!")
+                # Flush Langfuse traces before exit
+                if agent.langfuse_enabled:
+                    print("📤 Sending traces to Langfuse...")
+                    agent.flush_langfuse_traces()
+                    print("✅ Traces sent successfully!")
                 break
             elif user_input.lower() == "clear":
                 agent.llm.clear_history()
@@ -187,6 +330,11 @@ def main(argv):
 
         except KeyboardInterrupt:
             print("\n👋 Goodbye!")
+            # Flush Langfuse traces before exit
+            if agent.langfuse_enabled:
+                print("📤 Sending traces to Langfuse...")
+                agent.flush_langfuse_traces()
+                print("✅ Traces sent successfully!")
             break
         # except Exception as e:
         #     print(f"❌ Error: {e}")
