@@ -220,7 +220,7 @@ agent_objective: |
 To use a different model programmatically:
 
 ```python
-config = AgentConfig(model="claude-3-5-sonnet-20241022")
+config = AgentConfig(model="claude-sonnet-4-20250514")
 agent = Agent(config)
 ```
 
