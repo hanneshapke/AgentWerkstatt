@@ -39,7 +39,7 @@ class ToolRegistry:
             module_name = filename[:-3]  # Remove .py extension
 
             try:
-                module = importlib.import_module(f".{module_name}", package="tools")
+                module = importlib.import_module(f".{module_name}", package="agentwerkstatt.tools")
 
                 for name, obj in inspect.getmembers(module, inspect.isclass):
                     if (
