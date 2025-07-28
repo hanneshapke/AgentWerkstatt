@@ -78,7 +78,7 @@ quality-check = [
     "mypy .",
 ]
 test = "pytest"
-test-cov = "pytest --cov=agentwerkstatt --cov-report=html --cov-report=term"
+test-cov = "pytest --cov=. --cov-report=html --cov-report=term --cov-branch --cov-fail-under=85"
 pre-commit = [
     "ruff check --fix",
     "ruff format",
@@ -198,3 +198,27 @@ dev = [
     "setuptools-scm>=8.3.1",
     "types-pyyaml>=6.0.12.20250516",
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "tests/*",
+    "*/__init__.py",
+    "_version.py",
+    "setup.py",
+    "conftest.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError"
+]
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"

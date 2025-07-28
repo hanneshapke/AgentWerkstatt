@@ -66,10 +66,65 @@ uv run mypy .
 uv run pytest
 
 # Run tests with coverage
-uv run pytest --cov=agentwerkstatt
+uv run pytest --cov=. --cov-report=term
 
 # Run specific test files
 uv run pytest tests/test_specific.py
+```
+
+### Test Coverage
+
+We maintain high test coverage to ensure code quality and reliability. Our coverage threshold is set to **85%**.
+
+#### Running Coverage Analysis
+
+```bash
+# Run tests with coverage and generate reports
+uv run pytest --cov=. --cov-report=html --cov-report=term --cov-branch
+
+# Or use the pre-configured script
+uv run test-cov
+```
+
+#### Viewing Coverage Reports
+
+**Terminal Report:** Shows coverage summary directly in your terminal.
+
+**HTML Report:** Interactive visualization stored in `htmlcov/` directory:
+```bash
+# Open the coverage visualization
+open htmlcov/index.html
+
+# Or serve it locally
+python -m http.server 8000 -d htmlcov
+# Then visit http://localhost:8000
+```
+
+#### Understanding Coverage
+
+The HTML report provides:
+- **Line Coverage**: Green = covered, Red = not covered
+- **Branch Coverage**: Yellow = partially covered branches
+- **File-by-file breakdown**: Click any file to see detailed coverage
+- **Missing lines**: Exact line numbers that need tests
+
+#### Coverage Requirements
+
+- **Minimum coverage**: 85% (enforced in CI)
+- **New code**: Should have 90%+ coverage
+- **Critical paths**: Must have 100% coverage
+
+#### Improving Coverage
+
+Focus on:
+1. **Uncovered lines** (red in HTML report)
+2. **Untested branches** (yellow in HTML report)
+3. **Error handling paths**
+4. **Edge cases**
+
+```bash
+# Check coverage and fail if below threshold
+uv run pytest --cov=. --cov-fail-under=85
 ```
 
 ### Development Scripts
@@ -215,6 +270,8 @@ Before submitting your PR, make sure:
 - [ ] Code follows project style (Ruff passes)
 - [ ] Type checking passes (mypy)
 - [ ] Tests are written and passing
+- [ ] Test coverage meets 85% threshold
+- [ ] New code has 90%+ coverage
 - [ ] Documentation is updated
 - [ ] Commit messages follow conventional format
 - [ ] PR description explains the changes
@@ -225,7 +282,7 @@ Before submitting your PR, make sure:
 - **Additional tools** (file operations, API clients, etc.)
 - **Documentation improvements**
 - **Performance optimizations**
-- **Test coverage improvements**
+- **Test coverage improvements** (check `htmlcov/index.html` for gaps)
 
 ## 🙏 Thank You!
 

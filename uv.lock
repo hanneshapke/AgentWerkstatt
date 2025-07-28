@@ -12,7 +12,7 @@ wheels = [
 
 [[package]]
 name = "agentwerkstatt"
-version = "0.1.dev29+gb78bbd2.d20250727"
+version = "0.1.4.post2"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },
@@ -39,6 +39,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "ruff" },
+    { name = "setuptools" },
     { name = "setuptools-scm" },
     { name = "types-pyyaml" },
 ]
@@ -65,6 +66,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-mock", specifier = ">=3.14.1" },
     { name = "ruff", specifier = ">=0.12.5" },
+    { name = "setuptools", specifier = ">=61.0" },
     { name = "setuptools-scm", specifier = ">=8.3.1" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250516" },
 ]
