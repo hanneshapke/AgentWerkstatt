@@ -102,11 +102,9 @@ jobs:
     environment: test-pypi
 
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
+    - uses: actions/checkout@v4
       with:
-        name: dist-${{ github.sha }}
-        path: dist/
+        fetch-depth: 0  # Fetch full history for setuptools-scm
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -118,7 +116,29 @@ jobs:
       with:
         version: "latest"
 
+    - name: Check if version has local identifier
+      id: version_check
+      run: |
+        uv sync --dev
+        VERSION=$(uv run python -c "import setuptools_scm; print(setuptools_scm.get_version())")
+        echo "Version: $VERSION"
+        if [[ "$VERSION" == *"+"* ]]; then
+          echo "Version contains local identifier (+), skipping test-pypi deployment"
+          echo "skip_deployment=true" >> $GITHUB_OUTPUT
+        else
+          echo "Version is clean, proceeding with test-pypi deployment"
+          echo "skip_deployment=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download build artifacts
+      if: steps.version_check.outputs.skip_deployment == 'false'
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-${{ github.sha }}
+        path: dist/
+
     - name: Publish to Test PyPI
+      if: steps.version_check.outputs.skip_deployment == 'false'
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
