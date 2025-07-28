@@ -25,6 +25,7 @@ except ImportError:
 
         return decorator if args else decorator
 
+
 # mem0 imports
 try:
     from mem0 import Memory
@@ -118,17 +119,18 @@ class Agent:
                 # Use default initialization (will use local or default server)
                 self.memory = Memory()
 
-            # Test the connection by trying to search (this will verify the service is working)
-            test_result = self.memory.search(query="test", user_id="test_user", limit=1)
-
             self.memory_enabled = True
-            logging.info(f"mem0 memory system initialized successfully. Server: {config.memory_server_url}")
+            logging.info(
+                f"mem0 memory system initialized successfully. Server: {config.memory_server_url}"
+            )
             print("✅ Memory setup completed successfully!")
 
         except Exception as e:
             logging.error(f"Failed to initialize mem0: {e}")
             print(f"❌ Memory setup failed: {e}")
-            print("💡 Make sure mem0 service is running: docker compose -f 3rd_party/docker-compose.yaml up -d mem0")
+            print(
+                "💡 Make sure mem0 service is running: docker compose -f 3rd_party/docker-compose.yaml up -d mem0"
+            )
             return
 
     def _setup_langfuse(self, config: AgentConfig):
@@ -234,7 +236,9 @@ class Agent:
             if not relevant_memories.get("results"):
                 return ""
 
-            memories_str = "\n".join(f"- {entry['memory']}" for entry in relevant_memories["results"])
+            memories_str = "\n".join(
+                f"- {entry['memory']}" for entry in relevant_memories["results"]
+            )
             return f"\nRelevant memories:\n{memories_str}\n"
 
         except Exception as e:
@@ -250,7 +254,7 @@ class Agent:
             user_id = self._get_user_id()
             messages = [
                 {"role": "user", "content": user_input},
-                {"role": "assistant", "content": assistant_response}
+                {"role": "assistant", "content": assistant_response},
             ]
 
             self.memory.add(messages, user_id=user_id)
