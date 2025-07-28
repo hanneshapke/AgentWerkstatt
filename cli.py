@@ -2,7 +2,7 @@
 
 from absl import app, flags, logging
 
-from agent_refactored import Agent
+from agent import Agent
 from config import ConfigManager
 
 FLAGS = flags.FLAGS

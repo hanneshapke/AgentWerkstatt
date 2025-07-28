@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
 from llms.claude import ClaudeLLM
 
@@ -11,7 +13,7 @@ class ConversationHandler:
         memory_service: MemoryServiceProtocol,
         observability_service: ObservabilityServiceProtocol,
         tool_executor: ToolExecutorProtocol,
-        user_id_provider: callable = None,
+        user_id_provider: Callable[[], str] | None = None,
     ):
         self.llm = llm
         self.memory_service = memory_service
