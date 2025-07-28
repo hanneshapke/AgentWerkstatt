@@ -61,10 +61,18 @@ Repository = "https://github.com/hanneshapke/agentwerkstatt.git"
 "Contributing" = "https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md"
 
 [tool.setuptools]
-packages = ["agentwerkstatt"]
+packages = [
+    "agentwerkstatt",
+    "agentwerkstatt.llms",
+    "agentwerkstatt.services",
+    "agentwerkstatt.tools"
+]
 
 [tool.setuptools.package-dir]
-agentwerkstatt = "."
+"agentwerkstatt" = "."
+"agentwerkstatt.llms" = "llms"
+"agentwerkstatt.services" = "services"
+"agentwerkstatt.tools" = "tools"
 
 [tool.setuptools.package-data]
 agentwerkstatt = ["**/config.yaml", "**/docker-compose.yaml", "**/Dockerfile*", "**/*.md"]
