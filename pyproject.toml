@@ -62,6 +62,8 @@ exclude = ["tests*"]
 [tool.setuptools_scm]
 # Enable setuptools-scm for dynamic versioning from git tags
 write_to = "_version.py"
+# Don't include local version identifiers for test-pypi compatibility
+local_scheme = "no-local-version"
 
 # Development scripts for contributor workflow
 [tool.hatch.envs.default.scripts]
