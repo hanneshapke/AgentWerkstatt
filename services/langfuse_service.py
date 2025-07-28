@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Any
 
-from config import AgentConfig
+from ..config import AgentConfig
 
 # Langfuse imports
 try:

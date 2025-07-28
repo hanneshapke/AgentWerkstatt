@@ -1,4 +1,6 @@
-"""Tests for the LLMs module."""
+"""
+Unit tests for the LLMs module
+"""
 
 import os
 import sys
@@ -8,7 +10,7 @@ import pytest
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llms.base import BaseLLM
+from agentwerkstatt.llms.base import BaseLLM
 
 
 class TestBaseLLM:

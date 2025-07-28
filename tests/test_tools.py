@@ -1,4 +1,6 @@
-"""Tests for the tools module."""
+"""
+Unit tests for the tools module
+"""
 
 import os
 import sys
@@ -8,8 +10,8 @@ import pytest
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tools.base import BaseTool
-from tools.discovery import ToolRegistry
+from agentwerkstatt.tools.base import BaseTool
+from agentwerkstatt.tools.discovery import ToolRegistry
 
 
 class TestToolRegistry:

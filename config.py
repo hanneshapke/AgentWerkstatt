@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import yaml
 
-from interfaces import ConfigValidatorProtocol
+from .interfaces import ConfigValidatorProtocol
 
 
 @dataclass

@@ -143,7 +143,7 @@ You: quit
 #### Programmatic Usage
 
 ```python
-from agent import Agent, AgentConfig
+from agentwerkstatt import Agent, AgentConfig
 
 # Initialize with default config
 config = AgentConfig.from_yaml("agent_config.yaml")
