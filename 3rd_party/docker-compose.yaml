@@ -4,6 +4,46 @@
 # All other components are bound to localhost (127.0.0.1) to only accept connections from the local machine.
 # External connections from other machines will not be able to reach these services directly.
 services:
+  # mem0 memory management system - built from official repository with PostgreSQL support
+  mem0-base:
+    build:
+      context: https://github.com/mem0ai/mem0.git
+      dockerfile: server/dev.Dockerfile
+    image: mem0-base
+    profiles: ["build-only"]
+
+  mem0:
+    build:
+      context: .
+      dockerfile: Dockerfile.mem0
+      args:
+        MEM0_IMAGE: mem0-base
+    container_name: mem0
+    restart: unless-stopped
+    networks:
+      - default
+      - mem0_network
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-} # CHANGEME: Set your OpenAI API key
+      MEM0_CONFIG_PATH: /app/config.yaml
+      HISTORY_DB_PATH: /app/.mem0/history.db
+    ports:
+      - 127.0.0.1:8000:8000
+    volumes:
+      - mem0_data:/app/.mem0
+      - ./mem0-config.yaml:/app/config.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   langfuse-worker:
     image: docker.io/langfuse/langfuse-worker:3
     restart: always
@@ -142,7 +182,7 @@ services:
       retries: 10
 
   postgres:
-    image: docker.io/postgres:${POSTGRES_VERSION:-latest}
+    image: docker.io/pgvector/pgvector:${POSTGRES_VERSION:-pg17}
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -158,6 +198,28 @@ services:
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
 
+  neo4j:
+    image: neo4j:5.26.4
+    networks:
+      - mem0_network
+    healthcheck:
+      test: wget http://localhost:7687 || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 20
+      start_period: 3s
+    ports:
+      - "8474:7474" # HTTP
+      - "8687:7687" # Bolt
+    volumes:
+      - neo4j_data:/data
+    environment:
+      - NEO4J_AUTH=neo4j/mem0graph
+      - NEO4J_PLUGINS=["apoc"]  # Add this line to install APOC
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+
 volumes:
   langfuse_postgres_data:
     driver: local
@@ -167,3 +229,11 @@ volumes:
     driver: local
   langfuse_minio_data:
     driver: local
+  mem0_data:
+    driver: local
+  neo4j_data:
+    driver: local
+
+networks:
+  mem0_network:
+    driver: bridge

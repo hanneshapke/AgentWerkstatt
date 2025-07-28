@@ -16,9 +16,11 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It
 - 🧠 **Modular LLM Support** - Built with extensible LLM abstraction (currently supports Claude)
 - 🔧 **Tool System** - Pluggable tool architecture with automatic tool discovery
 - 💬 **Conversation Management** - Built-in conversation history and context management
+- 🧮 **Persistent Memory** - Optional mem0 integration for long-term memory and context retention
 - 🌐 **Web Search** - Integrated Tavily API for real-time web information retrieval
 - 📊 **Observability** - Optional Langfuse integration for comprehensive tracing and analytics
 - 🖥️ **CLI Interface** - Ready-to-use command-line interface
+- 🐳 **3rd Party Services** - Docker Compose stack with PostgreSQL, Neo4j, and other services
 - ⚡ **Lightweight** - Minimal dependencies and clean architecture
 
 ## Quick Start
@@ -28,6 +30,7 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It
 - Python 3.10 or higher
 - An Anthropic API key for Claude
 - (Optional) A Tavily API key for web search
+- (Optional) An OpenAI API key for mem0 memory system
 
 ### Installation
 
@@ -42,16 +45,45 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It
    # Basic installation
    uv sync
 
-   # With optional Langfuse tracing support
-   uv sync --extra tracing
+   # With optional features
+   uv sync --extra tracing  # Langfuse tracing support
+   uv sync --extra memory   # mem0 memory support
+   uv sync --all-extras     # All optional features
    ```
 
 3. **Set up environment variables:**
    ```bash
    # Create a .env file
    echo "ANTHROPIC_API_KEY=your_anthropic_api_key_here" >> .env
-   echo "TAVILY_API_KEY=your_tavily_api_key_here" >> .env  # Optional for web search
+   echo "TAVILY_API_KEY=your_tavily_api_key_here" >> .env          # Optional for web search
+   echo "OPENAI_API_KEY=your_openai_api_key_here" >> .env          # Optional for mem0 memory
    ```
+
+### 3rd Party Services (Optional)
+
+AgentWerkstatt includes a Docker Compose stack with integrated services:
+
+- **mem0** - AI memory management system for persistent context
+- **Langfuse** - Observability and tracing platform
+- **PostgreSQL** - Database with pgvector for embeddings
+- **Neo4j** - Graph database for memory relationships
+- **Redis** - Caching and session storage
+- **MinIO** - S3-compatible object storage
+
+To start the services:
+
+```bash
+# Start all services
+docker compose -f 3rd_party/docker-compose.yaml up -d
+
+# Or start specific services
+docker compose -f 3rd_party/docker-compose.yaml up -d mem0 neo4j postgres
+```
+
+For detailed setup instructions, see:
+- [MEM0_SETUP.md](3rd_party/MEM0_SETUP.md) - Memory system setup
+- [LANGFUSE_SETUP.md](3rd_party/LANGFUSE_SETUP.md) - Observability setup
+- [LANGFUSE_INTEGRATION.md](3rd_party/LANGFUSE_INTEGRATION.md) - Integration guide
 
 ### API Keys Setup
 
@@ -64,6 +96,11 @@ AgentWerkstatt is a lightweight, extensible framework for creating AI agents. It
 1. Sign up at [app.tavily.com](https://app.tavily.com/)
 2. Get your API key (1,000 free searches/month)
 3. Add it to your `.env` file as `TAVILY_API_KEY`
+
+#### OpenAI API Key (Optional, for mem0 memory)
+1. Sign up at [platform.openai.com](https://platform.openai.com/)
+2. Generate an API key
+3. Add it to your `.env` file as `OPENAI_API_KEY`
 
 ### Usage
 
@@ -165,6 +202,13 @@ AgentWerkstatt/
 │   ├── discovery.py     # Automatic tool discovery
 │   ├── websearch.py     # Tavily web search tool
 │   └── __init__.py
+├── 3rd_party/           # Third-party service integrations
+│   ├── docker-compose.yaml    # Service orchestration
+│   ├── Dockerfile.mem0        # Custom mem0 build
+│   ├── mem0-config.yaml       # Memory system config
+│   ├── MEM0_SETUP.md          # Memory setup guide
+│   ├── LANGFUSE_SETUP.md      # Observability setup
+│   └── LANGFUSE_INTEGRATION.md # Integration guide
 └── pyproject.toml       # Project configuration
 ```
 
@@ -183,6 +227,15 @@ Tools are modular components that extend agent capabilities:
 - **Automatic Discovery** - Tools are automatically discovered from the tools directory
 - **Extensible** - Add new tools by implementing `BaseTool`
 
+### Memory System
+
+Optional mem0 integration provides:
+
+- **Persistent Context** - Long-term memory across conversations
+- **Semantic Search** - Vector-based memory retrieval
+- **Graph Relationships** - Knowledge graph storage in Neo4j
+- **REST API** - Direct access to memory operations
+
 ### Agent System
 
 The `Agent` class orchestrates:
@@ -190,13 +243,20 @@ The `Agent` class orchestrates:
 - Tool execution and discovery
 - Conversation management
 - Response generation
+- Memory persistence (when enabled)
 
 ## Configuration
 
 ### Environment Variables
 
+#### Core
 - `ANTHROPIC_API_KEY` - Required for Claude API access
 - `TAVILY_API_KEY` - Optional, for web search functionality
+
+#### Memory (mem0)
+- `OPENAI_API_KEY` - Required for mem0 memory system (LLM and embeddings)
+
+#### Observability (Langfuse)
 - `LANGFUSE_PUBLIC_KEY` - Optional, for Langfuse tracing integration
 - `LANGFUSE_SECRET_KEY` - Optional, for Langfuse tracing integration
 - `LANGFUSE_HOST` - Optional, Langfuse host URL (defaults to cloud.langfuse.com)
@@ -215,6 +275,12 @@ tools_dir: "./tools"
 # Logging Configuration
 verbose: true
 
+# Memory Configuration (Optional)
+memory:
+  enabled: false               # Set to true to enable mem0 integration
+  model_name: "gpt-4o-mini"   # Model for memory processing
+  server_url: "http://localhost:8000"  # mem0 server endpoint
+
 # Langfuse Configuration (Optional)
 langfuse:
   enabled: true  # Set to false to disable tracing
@@ -226,6 +292,21 @@ agent_objective: |
   You can search the web for current information and provide accurate, helpful responses.
   Always be conversational and helpful in your responses.
 ```
+
+### Memory Configuration
+
+To enable persistent memory with mem0:
+
+1. Install memory dependencies: `uv sync --extra memory`
+2. Start the mem0 service: `docker compose -f 3rd_party/docker-compose.yaml up -d mem0`
+3. Set your OpenAI API key for memory operations
+4. Enable memory in your configuration:
+   ```yaml
+   memory:
+     enabled: true
+     model_name: "gpt-4o-mini"
+     server_url: "http://localhost:8000"
+   ```
 
 ### Model Configuration
 
@@ -258,7 +339,7 @@ To enable Langfuse tracing:
 
 **Note**: Langfuse is completely optional. AgentWerkstatt works perfectly without it.
 
-For detailed setup instructions, see [LANGFUSE_INTEGRATION.md](./LANGFUSE_INTEGRATION.md).
+For detailed setup instructions, see [LANGFUSE_INTEGRATION.md](3rd_party/LANGFUSE_INTEGRATION.md).
 
 ## Development
 
@@ -367,12 +448,17 @@ Core dependencies:
 - `absl-py` - Google's Python common libraries
 - `PyYAML` - YAML configuration file support
 
+Optional dependencies:
+- `langfuse` - Observability and tracing (with `--extra tracing`)
+- `mem0ai` - Memory system integration (with `--extra memory`)
+
 ## Roadmap
 
 Check out our [ROADMAP.md](ROADMAP.md) to see what's planned for future releases, including:
 
 - 🧠 **Multi-LLM Support** - OpenAI, Google AI, and local model integration
-- 🔗 **3rd Party Integrations** - Memory providers, observability tools, and more
+- ✅ **Memory & Persistence** - mem0 integration (✅ **COMPLETED**)
+- ✅ **3rd Party Integrations** - Observability tools and database services (✅ **COMPLETED**)
 - 🛠️ **Advanced Tools** - API discovery, file operations, and code execution
 - 🤖 **Agent Intelligence** - Self-reflection, planning, and reasoning capabilities
 
@@ -404,6 +490,8 @@ The license is still under development.
 
 - [Anthropic](https://www.anthropic.com/) for the Claude API
 - [Tavily](https://tavily.com/) for web search capabilities
+- [mem0](https://mem0.ai/) for AI memory management
+- [Langfuse](https://langfuse.com/) for observability and tracing
 - The open-source community for inspiration and tools
 
 ## Support
@@ -411,6 +499,8 @@ The license is still under development.
 - 📚 [Documentation](https://github.com/hanneshapke/agentwerkstatt#readme)
 - 🐛 [Bug Reports](https://github.com/hanneshapke/agentwerkstatt/issues)
 - 💬 [Discussions](https://github.com/hanneshapke/agentwerkstatt/discussions)
+- 🔧 [MEM0 Setup Guide](3rd_party/MEM0_SETUP.md)
+- 📊 [Langfuse Integration Guide](3rd_party/LANGFUSE_INTEGRATION.md)
 
 ---
 

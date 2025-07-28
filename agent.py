@@ -26,6 +26,15 @@ except ImportError:
         return decorator if args else decorator
 
 
+# mem0 imports
+try:
+    from mem0 import Memory
+
+    MEM0_AVAILABLE = True
+except ImportError:
+    MEM0_AVAILABLE = False
+
+
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")
 
@@ -43,6 +52,13 @@ class AgentConfig:
             data["langfuse_enabled"] = langfuse_data.get("enabled", False)
             data["langfuse_project_name"] = langfuse_data.get("project_name", "agentwerkstatt")
 
+        # Handle nested memory config - flatten it into the main config
+        memory_data = data.pop("memory", {})
+        if memory_data:
+            data["memory_enabled"] = memory_data.get("enabled", False)
+            data["memory_model_name"] = memory_data.get("model_name", "gpt-4o-mini")
+            data["memory_server_url"] = memory_data.get("server_url", "http://localhost:8000")
+
         return cls(**data)
 
     model: str = ""
@@ -51,6 +67,9 @@ class AgentConfig:
     agent_objective: str = ""
     langfuse_enabled: bool = False
     langfuse_project_name: str = "agentwerkstatt"
+    memory_enabled: bool = False
+    memory_model_name: str = "gpt-4o-mini"
+    memory_server_url: str = "http://localhost:8000"
 
 
 class Agent:
@@ -66,8 +85,53 @@ class Agent:
 
         self._set_logging_verbosity(config.verbose)
         self._setup_langfuse(config)
+        self._setup_memory(config)
 
         logging.debug(f"Tools: {self.tools}")
+
+    def _setup_memory(self, config: AgentConfig):
+        """Initialize mem0 if enabled and available"""
+        self.memory_enabled = False
+        self.memory = None
+
+        print(f"🧠 Memory setup - MEM0_AVAILABLE: {MEM0_AVAILABLE}")
+        print(f"🧠 Memory setup - config.memory_enabled: {config.memory_enabled}")
+
+        if not MEM0_AVAILABLE:
+            if config.memory_enabled:
+                logging.warning(
+                    "Memory is enabled in config but mem0 is not installed. Install with: pip install mem0ai"
+                )
+            print("❌ mem0 not available")
+            return
+
+        if not config.memory_enabled:
+            logging.debug("Memory system is disabled")
+            print("❌ Memory disabled in config")
+            return
+
+        try:
+            # Initialize mem0 with server URL if provided
+            if config.memory_server_url and config.memory_server_url != "http://localhost:8000":
+                # If custom server URL is provided, use it
+                self.memory = Memory(config={"server_url": config.memory_server_url})
+            else:
+                # Use default initialization (will use local or default server)
+                self.memory = Memory()
+
+            self.memory_enabled = True
+            logging.info(
+                f"mem0 memory system initialized successfully. Server: {config.memory_server_url}"
+            )
+            print("✅ Memory setup completed successfully!")
+
+        except Exception as e:
+            logging.error(f"Failed to initialize mem0: {e}")
+            print(f"❌ Memory setup failed: {e}")
+            print(
+                "💡 Make sure mem0 service is running: docker compose -f 3rd_party/docker-compose.yaml up -d mem0"
+            )
+            return
 
     def _setup_langfuse(self, config: AgentConfig):
         """Initialize Langfuse if enabled and available"""
@@ -156,6 +220,49 @@ class Agent:
         else:
             logging.set_verbosity(logging.ERROR)
 
+    def _get_user_id(self) -> str:
+        """Get user ID for memory operations. Can be enhanced to support multiple users."""
+        return "default_user"
+
+    def _retrieve_relevant_memories(self, user_input: str) -> str:
+        """Retrieve relevant memories for the user input"""
+        if not self.memory_enabled or not self.memory:
+            return ""
+
+        try:
+            user_id = self._get_user_id()
+            relevant_memories = self.memory.search(query=user_input, user_id=user_id, limit=3)
+
+            if not relevant_memories.get("results"):
+                return ""
+
+            memories_str = "\n".join(
+                f"- {entry['memory']}" for entry in relevant_memories["results"]
+            )
+            return f"\nRelevant memories:\n{memories_str}\n"
+
+        except Exception as e:
+            logging.error(f"Failed to retrieve memories: {e}")
+            return ""
+
+    def _store_conversation_memory(self, user_input: str, assistant_response: str):
+        """Store the conversation in memory"""
+        if not self.memory_enabled or not self.memory:
+            return
+
+        try:
+            user_id = self._get_user_id()
+            messages = [
+                {"role": "user", "content": user_input},
+                {"role": "assistant", "content": assistant_response},
+            ]
+
+            self.memory.add(messages, user_id=user_id)
+            logging.debug("Conversation stored in memory successfully")
+
+        except Exception as e:
+            logging.error(f"Failed to store conversation in memory: {e}")
+
     @observe(name="tool-execution")
     def execute_tool_call(self, tool_name: str, tool_input: dict) -> dict:
         """Execute a tool call"""
@@ -199,10 +306,19 @@ class Agent:
                 metadata={
                     "model": self.llm.model_name,
                     "project": self.config.langfuse_project_name,
+                    "memory_enabled": self.memory_enabled,
                 },
             )
 
-        user_message = {"role": "user", "content": user_input}
+        # Retrieve relevant memories if memory is enabled
+        memory_context = self._retrieve_relevant_memories(user_input)
+
+        # Enhance the user message with memory context if available
+        enhanced_input = user_input
+        if memory_context:
+            enhanced_input = f"{memory_context}\nUser query: {user_input}"
+
+        user_message = {"role": "user", "content": enhanced_input}
         messages = self.llm.conversation_history + [user_message]
         messages, assistant_message = self.llm.process_request(messages)
 
@@ -264,6 +380,9 @@ class Agent:
                 {"role": "assistant", "content": final_content}
             ]
 
+            # Store conversation in memory (using original user input, not enhanced)
+            self._store_conversation_memory(user_input, final_text)
+
             # Update Langfuse with final output
             if self.langfuse_enabled and LANGFUSE_AVAILABLE:
                 self.langfuse_client.update_current_span(output=final_text)
@@ -273,11 +392,14 @@ class Agent:
             # No tool calls, return the text response
             response_text = " ".join(final_response_parts)
 
-            # Update conversation history
-            self.llm.conversation_history.append(user_message)
+            # Update conversation history (use original user_input for history, not enhanced)
+            self.llm.conversation_history.append({"role": "user", "content": user_input})
             self.llm.conversation_history.append(
                 {"role": "assistant", "content": assistant_message}
             )
+
+            # Store conversation in memory (using original user input, not enhanced)
+            self._store_conversation_memory(user_input, response_text)
 
             # Update Langfuse with final output
             if self.langfuse_enabled and LANGFUSE_AVAILABLE:
@@ -301,6 +423,8 @@ def main(argv):
     agent = Agent(config)
 
     print("\nI'm an example AgentWerkstatt assistant with web search capabilities!")
+    if agent.memory_enabled:
+        print("🧠 Memory system is active - I'll remember our conversations!")
     print("Ask me to search the web for information.")
     print(
         "Commands: 'quit'/'exit' to quit, 'clear' to reset, 'status' to check conversation state.\n"
@@ -324,8 +448,10 @@ def main(argv):
                 continue
             elif user_input.lower() == "status":
                 history_len = len(agent.llm.conversation_history)
+                memory_status = "✅ Active" if agent.memory_enabled else "❌ Disabled"
 
                 print(f"📊 Conversation: {history_len} messages")
+                print(f"🧠 Memory: {memory_status}")
                 continue
 
             if not user_input:

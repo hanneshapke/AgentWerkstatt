@@ -37,6 +37,9 @@ dependencies = [
 tracing = [
     "langfuse>=3.2.1",
 ]
+memory = [
+    "mem0ai>=0.1.115",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

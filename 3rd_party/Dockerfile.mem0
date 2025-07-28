@@ -1,0 +1,17 @@
+# Extend the official mem0 build with PostgreSQL support
+ARG MEM0_IMAGE=mem0-base
+FROM ${MEM0_IMAGE}
+
+# Install PostgreSQL client libraries and psycopg2
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    python3-dev \
+    && pip install --no-cache-dir psycopg2-binary \
+    && apt-get remove -y gcc python3-dev \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create .mem0 directory and initialize SQLite database
+RUN mkdir -p /app/.mem0 && \
+    python3 -c "import sqlite3; conn = sqlite3.connect('/app/.mem0/history.db'); conn.execute('CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY)'); conn.commit(); conn.close()"
