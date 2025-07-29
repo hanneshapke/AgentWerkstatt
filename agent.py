@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import logging
+from absl import logging
 
 from .config import AgentConfig
 from .interfaces import (
