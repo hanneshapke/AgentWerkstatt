@@ -12,7 +12,7 @@ try:
 except ImportError:
     LANGFUSE_AVAILABLE = False
 
-    # Create dummy decorators if Langfuse is not available
+    # Create dummy decorator if Langfuse is not available
     def observe(*args, **kwargs):
         def decorator(func):
             return func
@@ -25,230 +25,218 @@ class LangfuseService:
 
     def __init__(self, config: AgentConfig):
         self.config = config
-        self._client = None
+        self._client: Any | None = None
         self._enabled = False
-        self._current_trace = None
-        self._current_span = None
-        self._initialize_langfuse()
+        self._current_span: Any | None = None
+        self._initialize()
 
     @property
     def is_enabled(self) -> bool:
         """Check if Langfuse service is enabled"""
         return self._enabled
 
-    def _initialize_langfuse(self) -> None:
-        """Initialize Langfuse if enabled and available"""
-        print(f"🔧 Langfuse setup - LANGFUSE_AVAILABLE: {LANGFUSE_AVAILABLE}")
-        print(f"🔧 Langfuse setup - config.langfuse_enabled: {self.config.langfuse_enabled}")
+    def _initialize(self) -> None:
+        """Initialize Langfuse service"""
+        try:
+            if not self._check_availability():
+                return
 
+            if not self._validate_configuration():
+                return
+
+            self._setup_client()
+            logging.info("Langfuse service initialized successfully")
+
+        except Exception as e:
+            logging.error(f"Failed to initialize Langfuse: {e}")
+            self._enabled = False
+
+    def _check_availability(self) -> bool:
+        """Check if Langfuse is available and enabled"""
         if not LANGFUSE_AVAILABLE:
             if self.config.langfuse_enabled:
                 logging.warning(
                     "Langfuse is enabled in config but not installed. Install with: pip install langfuse"
                 )
-            print("❌ Langfuse not available")
-            return
+            return False
 
         if not self.config.langfuse_enabled:
-            logging.debug("Langfuse tracing is disabled")
-            print("❌ Langfuse disabled in config")
-            return
+            logging.debug("Langfuse tracing is disabled in configuration")
+            return False
 
-        # Check for required environment variables
-        required_env_vars = ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]
-        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        return True
 
-        print(f"🔧 Checking environment variables: {required_env_vars}")
-        print(f"🔧 Missing variables: {missing_vars}")
+    def _validate_configuration(self) -> bool:
+        """Validate required environment variables"""
+        required_vars = ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
 
         if missing_vars:
-            logging.warning(
-                f"Langfuse is enabled but missing environment variables: {missing_vars}"
-            )
-            print(f"❌ Missing env vars: {missing_vars}")
-            return
+            logging.warning(f"Langfuse missing environment variables: {missing_vars}")
+            return False
 
-        # Initialize Langfuse client with explicit configuration (v3 API)
-        try:
-            # Get host configuration
-            langfuse_host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        return True
 
-            # Initialize the singleton client (v3 pattern)
-            Langfuse(
-                public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-                secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-                host=langfuse_host,
-            )
+    def _setup_client(self) -> None:
+        """Setup and test Langfuse client"""
+        host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
 
-            # Get the client instance to test connection
-            self._client = get_client()
+        # Initialize the singleton client
+        Langfuse(
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            host=host,
+        )
 
-            # Test the connection
-            print("🔧 Testing authentication...")
-            auth_result = self._client.auth_check()
-            print(f"🔧 Auth result: {auth_result}")
-            if not auth_result:
-                logging.error(
-                    f"Langfuse authentication failed. Check your credentials and host: {langfuse_host}"
-                )
-                print("❌ Authentication failed")
-                return
+        # Get client instance and test connection
+        self._client = get_client()
 
-            self._enabled = True
-            logging.info(f"Langfuse tracing initialized successfully. Host: {langfuse_host}")
-            print("✅ Langfuse setup completed successfully!")
+        if not self._client.auth_check():
+            raise Exception(f"Authentication failed for host: {host}")
 
-        except Exception as e:
-            logging.error(f"Failed to initialize Langfuse: {e}")
-            print(f"❌ Langfuse setup failed: {e}")
-            self._enabled = False
+        self._enabled = True
 
     def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
         """Start observing a request by creating a new trace and span"""
-        if not self._enabled or not self._client:
+        if not self._is_available():
             return
 
         try:
-            logging.debug("Creating Langfuse trace for agent request")
-
-            # Extract session_id from metadata
-            session_id = metadata.get("session_id")
-
-            # Create a new span for this request using the correct v3.2.1 API
+            assert self._client is not None  # Type assertion after availability check
             self._current_span = self._client.start_span(
                 name="Agent Request", input=input_data, metadata=metadata
             )
 
-            # Update the trace with metadata using the span
+            # Update trace with session metadata
             self._current_span.update_trace(
                 name="Agent Processing",
-                session_id=session_id,  # Now properly using the session_id
+                session_id=metadata.get("session_id"),
                 user_id=metadata.get("user_id"),
                 tags=["agent", "request"],
             )
 
-            # Store reference to the trace ID for child spans
-            self._current_trace = self._current_span  # The span provides access to trace operations
-
-            if session_id:
-                logging.debug(
-                    f"Created span {self._current_span.id} with trace {self._current_span.trace_id} in session {session_id}"
-                )
-            else:
-                logging.debug(
-                    f"Created span {self._current_span.id} with trace {self._current_span.trace_id}"
-                )
+            logging.debug(f"Started observation for request (trace: {self._current_span.trace_id})")
 
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
 
-    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
-        """Observe tool execution by creating a child span"""
-        if not self._enabled or not self._client or not self._current_span:
-            return
-
-        try:
-            # Create a child span for tool execution using the correct v3.2.1 API
-            with self._current_span.start_as_current_span(
-                name=f"Tool: {tool_name}",
-                input=tool_input,
-                metadata={"tool_name": tool_name, "type": "tool_execution"},
-            ) as tool_span:
-                # The span will automatically end when exiting the context
-                tool_span.update(output={"status": "executed"})
-
-            logging.debug(f"Created tool span for {tool_name}")
-
-        except Exception as e:
-            logging.error(f"Failed to observe tool execution: {e}")
-
-    def observe_llm_call(
-        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
-    ) -> Any:
-        """Create a child span for LLM API calls and return a context manager"""
-        if not self._enabled or not self._client or not self._current_span:
+    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any | None:
+        """Create a generation for tool execution that can be updated later"""
+        if not self._is_available() or not self._current_span:
             return None
 
         try:
-            # Create a child span for LLM call
-            llm_span = self._current_span.start_as_current_span(
-                name=f"LLM Call: {model_name}",
-                input={"messages": messages, "num_messages": len(messages)},
-                metadata={"model": model_name, "type": "llm_call", **(metadata or {})},
+            tool_generation = self._current_span.start_generation(
+                name=f"Tool: {tool_name}",
+                input=tool_input,
+                metadata={"tool_name": tool_name, "type": "tool_execution"},
             )
 
-            logging.debug(f"Created LLM span for {model_name}")
-            return llm_span
+            logging.debug(f"Started tool observation: {tool_name}")
+            return tool_generation
+
+        except Exception as e:
+            logging.error(f"Failed to observe tool execution: {e}")
+            return None
+
+    def update_tool_observation(self, tool_generation: Any, output: Any) -> None:
+        """Update tool observation with results"""
+        if not self._is_available() or not tool_generation:
+            return
+
+        try:
+            tool_generation.update(output=output)
+            tool_generation.end()
+            logging.debug("Tool observation updated successfully")
+
+        except Exception as e:
+            logging.error(f"Failed to update tool observation: {e}")
+
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
+    ) -> Any | None:
+        """Create a generation for LLM API calls"""
+        if not self._is_available() or not self._current_span:
+            return None
+
+        try:
+            llm_generation = self._current_span.start_generation(
+                name=f"LLM Call: {model_name}",
+                input=messages,
+                model=model_name,
+                metadata={"type": "llm_call", **(metadata or {})},
+            )
+
+            logging.debug(f"Started LLM observation: {model_name}")
+            return llm_generation
 
         except Exception as e:
             logging.error(f"Failed to observe LLM call: {e}")
             return None
 
     def update_llm_observation(
-        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
     ) -> None:
-        """Update an LLM observation with output and usage data"""
-        if not self._enabled or not llm_span:
+        """Update LLM observation with output and usage data"""
+        if not self._is_available() or not llm_generation:
             return
 
         try:
             update_data = {"output": output}
             if usage:
-                update_data["usage"] = usage
+                update_data["usage_details"] = usage
 
-            llm_span.update(**update_data)
-            llm_span.end()
-
-            logging.debug("Updated LLM observation with output and usage")
+            llm_generation.update(**update_data)
+            llm_generation.end()
+            logging.debug("LLM observation updated successfully")
 
         except Exception as e:
             logging.error(f"Failed to update LLM observation: {e}")
 
     def update_observation(self, output: Any) -> None:
-        """Update current observation with output and end the span"""
-        if not self._enabled or not self._client or not self._current_span:
+        """Update current observation with final output and end the span"""
+        if not self._is_available() or not self._current_span:
             return
 
         try:
-            # Update the current span with the final output
+            # Update span and trace with final output
             self._current_span.update(output=output)
-
-            # Update the trace with the final output
             self._current_span.update_trace(output=output)
-
-            # End the current span
             self._current_span.end()
 
-            logging.debug("Updated observation with final output and ended span")
-
-            # Clear current span and trace
+            # Clear current span
             self._current_span = None
-            self._current_trace = None
+            logging.debug("Request observation completed")
 
         except Exception as e:
             logging.error(f"Failed to update observation: {e}")
 
     def flush_traces(self) -> None:
         """Flush any pending Langfuse traces"""
-        if not self._enabled or not self._client:
+        if not self._is_available():
             return
 
         try:
+            assert self._client is not None  # Type assertion after availability check
             self._client.flush()
-            logging.debug("Langfuse traces flushed successfully")
+            logging.debug("Langfuse traces flushed")
         except Exception as e:
-            logging.error(f"Failed to flush Langfuse traces: {e}")
+            logging.error(f"Failed to flush traces: {e}")
 
     def get_observe_decorator(self, name: str):
         """Get the observe decorator for function decoration"""
-        if LANGFUSE_AVAILABLE and self._enabled:
+        if self._is_available():
             return observe(name=name)
 
-        # Return no-op decorator if not available
+        # Return no-op decorator
         def decorator(func):
             return func
 
         return decorator
+
+    def _is_available(self) -> bool:
+        """Check if service is enabled and client is available"""
+        return self._enabled and self._client is not None
 
 
 class NoOpObservabilityService:
@@ -262,15 +250,18 @@ class NoOpObservabilityService:
         pass
 
     def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
+        return None
+
+    def update_tool_observation(self, tool_observation: Any, output: Any) -> None:
         pass
 
     def observe_llm_call(
-        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
-    ) -> Any:
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
+    ) -> None:
         return None
 
     def update_llm_observation(
-        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
     ) -> None:
         pass
 

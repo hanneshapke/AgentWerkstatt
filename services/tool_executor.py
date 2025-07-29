@@ -16,71 +16,174 @@ class ToolExecutor:
         self.tool_registry = tool_registry
         self.observability_service = observability_service
 
-    def execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
-        """Execute a tool call with observability tracking"""
+    def execute_tool_calls(self, assistant_message: list) -> tuple[list, list]:
+        """Execute all tool calls from an assistant message"""
+        tool_results = []
+        text_parts = []
 
-        # Start observing tool execution
-        self.observability_service.observe_tool_execution(tool_name, tool_input)
+        logging.debug(f"Processing {len(assistant_message)} content blocks")
+
+        for block in assistant_message:
+            if block.get("type") == "text":
+                text_parts.append(block["text"])
+            elif block.get("type") == "tool_use":
+                result = self._execute_single_tool_call(block)
+                tool_results.append(result)
+
+        # Validate all tool calls have results
+        self._validate_tool_results(assistant_message, tool_results)
+
+        logging.debug(f"Completed {len(tool_results)} tool executions")
+        return tool_results, text_parts
+
+    def _execute_single_tool_call(self, tool_block: dict) -> dict:
+        """Execute a single tool call and return formatted result"""
+        tool_id = tool_block["id"]
+        tool_name = tool_block["name"]
+        tool_input = tool_block["input"]
+
+        logging.debug(f"Executing {tool_name} (ID: {tool_id})")
 
         try:
+            # Validate input
+            if not isinstance(tool_input, dict):
+                raise ValueError(f"Tool input must be a dictionary, got {type(tool_input)}")
+
+            # Execute tool with observability
+            result = self._execute_tool_with_observability(tool_name, tool_input)
+
+            # Handle result
+            if self._is_error_result(result):
+                return self._create_error_tool_result(tool_id, tool_name, result["error"])
+            else:
+                return self._create_success_tool_result(tool_id, result)
+
+        except Exception as e:
+            logging.error(f"Tool {tool_name} execution failed: {e}")
+            return self._create_error_tool_result(tool_id, tool_name, str(e))
+
+    def _execute_tool_with_observability(self, tool_name: str, tool_input: dict) -> dict:
+        """Execute tool with observability tracking"""
+        # Start observation
+        tool_span = self._start_tool_observation(tool_name, tool_input)
+
+        try:
+            # Get and execute tool
             tool = self.tool_registry.get_tool_by_name(tool_name)
             if tool is None:
-                raise ValueError(f"Unknown tool: {tool_name}")
+                result = {"error": f"Unknown tool: {tool_name}", "tool_name": tool_name}
+            else:
+                result = tool.execute(**tool_input)
 
-            result = tool.execute(**tool_input)
-
-            # Update observation with successful result
-            self.observability_service.update_observation(result)
-
-            logging.debug(f"Tool {tool_name} executed successfully")
+            # Update observation with result
+            self._update_tool_observation(tool_span, result)
             return result
 
         except Exception as e:
-            error_result = {"error": str(e)}
+            error_result = {
+                "error": f"Tool execution failed: {str(e)}",
+                "tool_name": tool_name,
+                "exception_type": type(e).__name__,
+            }
+            self._update_tool_observation(tool_span, error_result)
+            return error_result
 
-            # Update observation with error
-            self.observability_service.update_observation(error_result)
+    def _start_tool_observation(self, tool_name: str, tool_input: dict) -> Any:
+        """Start tool observation, return span or None"""
+        if not self.observability_service:
+            return None
+        try:
+            return self.observability_service.observe_tool_execution(tool_name, tool_input)
+        except Exception as e:
+            logging.warning(f"Failed to start tool observation: {e}")
+            return None
 
-            logging.error(f"Tool {tool_name} execution failed: {e}")
-            raise
+    def _update_tool_observation(self, tool_span: Any, result: dict) -> None:
+        """Update tool observation with result"""
+        if not tool_span or not self.observability_service:
+            return
+        try:
+            self.observability_service.update_tool_observation(tool_span, result)
+        except Exception as e:
+            logging.warning(f"Failed to update tool observation: {e}")
 
-    def execute_tool_calls(self, assistant_message: list) -> tuple[list, list]:
-        """
-        Execute all tool calls from an assistant message
+    def _is_error_result(self, result: dict) -> bool:
+        """Check if result indicates an error"""
+        return isinstance(result, dict) and "error" in result
 
-        Returns:
-            tuple: (tool_results, final_response_parts)
-        """
-        tool_results = []
-        final_response_parts = []
+    def _create_success_tool_result(self, tool_id: str, result: Any) -> dict:
+        """Create a successful tool result"""
+        if result is None:
+            raise ValueError("Tool returned None result")
 
-        for content_block in assistant_message:
-            if content_block.get("type") == "text":
-                final_response_parts.append(content_block["text"])
-            elif content_block.get("type") == "tool_use":
-                tool_name = content_block["name"]
-                tool_input = content_block["input"]
-                tool_id = content_block["id"]
+        return {
+            "type": "tool_result",
+            "tool_use_id": tool_id,
+            "content": self._format_tool_content(result),
+        }
 
-                try:
-                    # Execute the tool
-                    result = self.execute_tool(tool_name, tool_input)
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_id,
-                            "content": json.dumps(result),
-                        }
-                    )
-                except Exception as e:
-                    print(f"❌ Error executing tool {tool_name}: {e}")
-                    # Add error result instead of failing completely
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_id,
-                            "content": f"Error: {str(e)}",
-                        }
-                    )
+    def _create_error_tool_result(self, tool_id: str, tool_name: str, error: str) -> dict:
+        """Create an error tool result"""
+        return {
+            "type": "tool_result",
+            "tool_use_id": tool_id,
+            "content": self._create_user_friendly_error(tool_name, error),
+            "is_error": True,
+        }
 
-        return tool_results, final_response_parts
+    def _format_tool_content(self, result: Any) -> str:
+        """Format tool result content for Claude API"""
+        try:
+            if isinstance(result, str):
+                return result
+            elif isinstance(result, dict | list):
+                return json.dumps(result, ensure_ascii=False)
+            else:
+                return str(result)
+        except Exception as e:
+            logging.error(f"Failed to format tool content: {e}")
+            return f"Error formatting tool result: {str(e)}"
+
+    def _create_user_friendly_error(self, tool_name: str, error: str) -> str:
+        """Create a user-friendly error message"""
+        error_lower = error.lower()
+
+        if "api key" in error_lower or "authentication" in error_lower:
+            return f"The {tool_name} tool is not properly configured. Please check the API configuration."
+        elif "timeout" in error_lower or "connection" in error_lower:
+            return f"The {tool_name} tool experienced a network issue. Please try again later."
+        elif "rate limit" in error_lower:
+            return f"The {tool_name} tool has reached its usage limit. Please try again later."
+        else:
+            return f"The {tool_name} tool encountered an error: {error}"
+
+    def _validate_tool_results(self, assistant_message: list, tool_results: list) -> None:
+        """Validate that all tool calls have corresponding results"""
+        # Extract tool IDs from original message
+        expected_ids = {
+            block["id"] for block in assistant_message if block.get("type") == "tool_use"
+        }
+
+        # Extract tool IDs from results
+        actual_ids = {result["tool_use_id"] for result in tool_results}
+
+        # Check for missing results
+        missing_ids = expected_ids - actual_ids
+        if missing_ids:
+            logging.error(f"Missing tool results for IDs: {missing_ids}")
+            # Add placeholder results
+            for missing_id in missing_ids:
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": missing_id,
+                        "content": "Error: Tool execution failed to complete. No result available.",
+                        "is_error": True,
+                    }
+                )
+
+    # Legacy methods for backward compatibility (marked for removal)
+    def execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+        """Legacy method - use _execute_tool_with_observability instead"""
+        logging.warning("execute_tool is deprecated, use _execute_tool_with_observability")
+        return self._execute_tool_with_observability(tool_name, tool_input)
