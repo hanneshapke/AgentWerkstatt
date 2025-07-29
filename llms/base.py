@@ -5,36 +5,11 @@ from dotenv import load_dotenv
 # Load environment variables once at module level
 load_dotenv()
 
-# Langfuse imports with fallback - shared by all LLM implementations
-try:
-    from langfuse.decorators import langfuse_context, observe
-
-    LANGFUSE_AVAILABLE = True
-except ImportError:
-    LANGFUSE_AVAILABLE = False
-
-    # Create dummy decorators if Langfuse is not available
-    def observe(*args, **kwargs):
-        def decorator(func):
-            return func
-
-        return decorator if args else decorator
-
-    # Create dummy langfuse_context
-    class DummyLangfuseContext:
-        def update_current_observation(self, **kwargs):
-            pass
-
-        def update_current_span(self, **kwargs):
-            pass
-
-    langfuse_context = DummyLangfuseContext()
-
 
 class BaseLLM:
     """Abstract base class for all LLMs"""
 
-    def __init__(self, model_name: str, tools: dict[str, Any], agent_objective: str = ""):
+    def __init__(self, model_name: str, tools: dict[str, Any], agent_objective: str = "", observability_service=None):
         self.model_name = model_name
         self.api_key = ""
         self.base_url = ""
@@ -43,6 +18,7 @@ class BaseLLM:
         self.base_system_prompt = ""
         self.tools = tools
         self.timeout = 30.0
+        self.observability_service = observability_service
 
     def clear_history(self):
         """Clear conversation history"""
@@ -89,17 +65,6 @@ You have {num_tools} tools at your disposal:
     def _get_tool_schemas(self) -> list[dict]:
         """Get tool schemas for API calls"""
         return [tool.get_schema() for tool in self.tools] if self.tools else []
-
-    def _update_langfuse_observation(self, **kwargs) -> None:
-        """Update Langfuse observation if available and has active context"""
-        if LANGFUSE_AVAILABLE:
-            try:
-                langfuse_context.update_current_observation(**kwargs)
-            except Exception:
-                # Silently handle cases where there's no active span context
-                # This can happen when @observe decorators aren't properly set up
-                # or when called outside of an observed function
-                pass
 
     def make_api_request(self, messages: list[dict]) -> str:
         """Make an API request to the LLM"""
