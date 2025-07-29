@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import uuid
 from absl import app, flags, logging
 
 from .agent import Agent
@@ -7,6 +8,7 @@ from .config import ConfigManager
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")
+flags.DEFINE_string("session_id", None, "Optional session ID for grouping traces. Auto-generated if not provided.")
 
 
 def _set_logging_verbosity(verbose: bool):
@@ -17,7 +19,7 @@ def _set_logging_verbosity(verbose: bool):
         logging.set_verbosity(logging.ERROR)
 
 
-def _print_welcome_message(agent: Agent):
+def _print_welcome_message(agent: Agent, session_id: str):
     """Print welcome message and status"""
     print("🤖 AgentWerkstatt")
     print("=" * 50)
@@ -25,6 +27,9 @@ def _print_welcome_message(agent: Agent):
 
     if agent.memory_service.is_enabled:
         print("🧠 Memory system is active - I'll remember our conversations!")
+
+    if agent.observability_service.is_enabled:
+        print(f"📊 Session ID: {session_id}")
 
     print("Ask me to search the web for information.")
     print(
@@ -69,9 +74,9 @@ def _handle_user_command(command: str, agent: Agent) -> bool:
     return False
 
 
-def _run_interactive_loop(agent: Agent):
+def _run_interactive_loop(agent: Agent, session_id: str):
     """Run the main interactive loop"""
-    _print_welcome_message(agent)
+    _print_welcome_message(agent, session_id)
 
     while True:
         try:
@@ -87,7 +92,7 @@ def _run_interactive_loop(agent: Agent):
                 continue
 
             print("🤔 Agent is thinking...")
-            response = agent.process_request(user_input)
+            response = agent.process_request(user_input, session_id=session_id)
             print(f"\n🤖 Agent: {response}\n")
 
         except KeyboardInterrupt:
@@ -116,11 +121,14 @@ def main(argv):
         # Set logging verbosity
         _set_logging_verbosity(config.verbose)
 
-        # Initialize the agent
-        agent = Agent(config)
+        # Generate or use provided session ID
+        session_id = FLAGS.session_id or str(uuid.uuid4())
+
+        # Initialize the agent with session ID
+        agent = Agent(config, session_id=session_id)
 
         # Run interactive loop
-        _run_interactive_loop(agent)
+        _run_interactive_loop(agent, session_id)
 
     except Exception as e:
         print(f"❌ Failed to start AgentWerkstatt: {e}")
