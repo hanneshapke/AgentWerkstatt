@@ -65,11 +65,22 @@ class ClaudeLLM(BaseLLM):
 
                     block_type = block.get("type")
                     if block_type == "text" and "text" not in block:
-                        return False, f"Message {i}, content block {j} of type 'text' missing 'text' field"
+                        return (
+                            False,
+                            f"Message {i}, content block {j} of type 'text' missing 'text' field",
+                        )
                     elif block_type == "tool_use" and ("name" not in block or "id" not in block):
-                        return False, f"Message {i}, content block {j} of type 'tool_use' missing required fields"
-                    elif block_type == "tool_result" and ("tool_use_id" not in block or "content" not in block):
-                        return False, f"Message {i}, content block {j} of type 'tool_result' missing required fields"
+                        return (
+                            False,
+                            f"Message {i}, content block {j} of type 'tool_use' missing required fields",
+                        )
+                    elif block_type == "tool_result" and (
+                        "tool_use_id" not in block or "content" not in block
+                    ):
+                        return (
+                            False,
+                            f"Message {i}, content block {j} of type 'tool_result' missing required fields",
+                        )
             else:
                 return False, f"Message {i} content has invalid type: {type(content)}"
 
@@ -81,10 +92,7 @@ class ClaudeLLM(BaseLLM):
 
         for message in messages:
             # Create a clean copy
-            clean_message = {
-                "role": message["role"],
-                "content": message["content"]
-            }
+            clean_message = {"role": message["role"], "content": message["content"]}
 
             # Ensure content is properly formatted
             if isinstance(clean_message["content"], list):
@@ -171,7 +179,7 @@ class ClaudeLLM(BaseLLM):
             logging.error(f"Payload validation failed: {validation_result['error']}")
             if llm_span:
                 try:
-                    logging.debug(f"Updating LLM observation with validation error")
+                    logging.debug("Updating LLM observation with validation error")
                     self.observability_service.update_llm_observation(
                         llm_generation=llm_span, output=error_response
                     )
@@ -199,13 +207,13 @@ class ClaudeLLM(BaseLLM):
 
                 # Check for error before raising
                 if response.status_code != 200:
-                    error_details = response_data.get('error', {})
+                    error_details = response_data.get("error", {})
                     if isinstance(error_details, dict):
-                        error_msg = error_details.get('message', str(response_data))
-                        error_type = error_details.get('type', 'unknown_error')
+                        error_msg = error_details.get("message", str(response_data))
+                        error_type = error_details.get("type", "unknown_error")
                     else:
                         error_msg = str(error_details)
-                        error_type = 'unknown_error'
+                        error_type = "unknown_error"
 
                     logging.error(f"API Error {response.status_code} ({error_type}): {error_msg}")
 
@@ -215,7 +223,7 @@ class ClaudeLLM(BaseLLM):
                             logging.debug(f"Updating LLM observation with error: {error_msg}")
                             self.observability_service.update_llm_observation(
                                 llm_generation=llm_span,
-                                output={"error": error_msg, "status_code": response.status_code}
+                                output={"error": error_msg, "status_code": response.status_code},
                             )
                             logging.debug("LLM observation updated with error successfully")
                         except Exception as e:
@@ -226,7 +234,7 @@ class ClaudeLLM(BaseLLM):
                 # Update observability with response data
                 if llm_span:
                     try:
-                        logging.debug(f"Updating LLM observation with response data")
+                        logging.debug("Updating LLM observation with response data")
                         if "usage" in response_data:
                             usage = response_data.get("usage", {})
                             logging.debug(f"Response includes usage data: {usage}")
@@ -270,7 +278,7 @@ class ClaudeLLM(BaseLLM):
         # Update observability with error
         if llm_span:
             try:
-                logging.debug(f"Updating LLM observation with exception error")
+                logging.debug("Updating LLM observation with exception error")
                 self.observability_service.update_llm_observation(
                     llm_generation=llm_span, output=error_response
                 )
@@ -292,9 +300,7 @@ class ClaudeLLM(BaseLLM):
         """
 
         if not messages:
-            error_message = [
-                {"type": "text", "text": "❌ No messages provided to process"}
-            ]
+            error_message = [{"type": "text", "text": "❌ No messages provided to process"}]
             return [], error_message
 
         # Make initial API request
@@ -313,9 +319,7 @@ class ClaudeLLM(BaseLLM):
 
         if not assistant_message:
             # Handle empty response
-            error_message = [
-                {"type": "text", "text": "❌ Received empty response from Claude"}
-            ]
+            error_message = [{"type": "text", "text": "❌ Received empty response from Claude"}]
             return messages, error_message
 
         return messages, assistant_message
@@ -370,10 +374,16 @@ class ClaudeLLM(BaseLLM):
                     # Validate structured content blocks
                     for j, block in enumerate(content):
                         if not isinstance(block, dict):
-                            return {"valid": False, "error": f"Message {i} content block {j} must be a dictionary"}
+                            return {
+                                "valid": False,
+                                "error": f"Message {i} content block {j} must be a dictionary",
+                            }
 
                         if "type" not in block:
-                            return {"valid": False, "error": f"Message {i} content block {j} missing 'type' field"}
+                            return {
+                                "valid": False,
+                                "error": f"Message {i} content block {j} missing 'type' field",
+                            }
 
                         block_type = block["type"]
                         if block_type == "tool_use":
@@ -381,19 +391,28 @@ class ClaudeLLM(BaseLLM):
                             required_tool_fields = ["id", "name", "input"]
                             for field in required_tool_fields:
                                 if field not in block:
-                                    return {"valid": False, "error": f"Message {i} tool_use block missing '{field}' field"}
+                                    return {
+                                        "valid": False,
+                                        "error": f"Message {i} tool_use block missing '{field}' field",
+                                    }
 
                         elif block_type == "tool_result":
                             # Validate tool_result block
                             required_result_fields = ["tool_use_id", "content"]
                             for field in required_result_fields:
                                 if field not in block:
-                                    return {"valid": False, "error": f"Message {i} tool_result block missing '{field}' field"}
+                                    return {
+                                        "valid": False,
+                                        "error": f"Message {i} tool_result block missing '{field}' field",
+                                    }
 
                         elif block_type == "text":
                             # Validate text block
                             if "text" not in block:
-                                return {"valid": False, "error": f"Message {i} text block missing 'text' field"}
+                                return {
+                                    "valid": False,
+                                    "error": f"Message {i} text block missing 'text' field",
+                                }
 
             # Validate system prompt if present
             if "system" in payload:

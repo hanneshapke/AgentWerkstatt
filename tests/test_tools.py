@@ -4,16 +4,16 @@ Unit tests for the tools module
 
 import os
 import sys
+from unittest.mock import Mock, patch
 
 import pytest
-from unittest.mock import Mock, patch
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from agentwerkstatt.services.tool_executor import ToolExecutor
 from agentwerkstatt.tools.base import BaseTool
 from agentwerkstatt.tools.discovery import ToolRegistry
-from agentwerkstatt.services.tool_executor import ToolExecutor
 
 
 class TestToolRegistry:
@@ -78,7 +78,7 @@ class TestMultipleToolCalls:
 
         mock_registry.get_tool_by_name.side_effect = lambda name: {
             "search_web": mock_tool1,
-            "get_weather": mock_tool2
+            "get_weather": mock_tool2,
         }.get(name)
 
         # Create assistant message with multiple tool calls
@@ -88,15 +88,15 @@ class TestMultipleToolCalls:
                 "type": "tool_use",
                 "id": "toolu_01Qf9dgcPWuhXZssFR2dHsQh",
                 "name": "search_web",
-                "input": {"query": "python tutorial"}
+                "input": {"query": "python tutorial"},
             },
             {
                 "type": "tool_use",
                 "id": "toolu_02Bf8egdRXvhYZttGS3eItQj",
                 "name": "get_weather",
-                "input": {"location": "New York"}
+                "input": {"location": "New York"},
             },
-            {"type": "text", "text": "Let me get both results for you."}
+            {"type": "text", "text": "Let me get both results for you."},
         ]
 
         # Execute
@@ -141,7 +141,7 @@ class TestMultipleToolCalls:
 
         mock_registry.get_tool_by_name.side_effect = lambda name: {
             "working_tool": mock_tool1,
-            "failing_tool": mock_tool2
+            "failing_tool": mock_tool2,
         }.get(name)
 
         # Create assistant message with multiple tool calls
@@ -150,14 +150,14 @@ class TestMultipleToolCalls:
                 "type": "tool_use",
                 "id": "toolu_success",
                 "name": "working_tool",
-                "input": {"param": "value"}
+                "input": {"param": "value"},
             },
             {
                 "type": "tool_use",
                 "id": "toolu_failure",
                 "name": "failing_tool",
-                "input": {"param": "value"}
-            }
+                "input": {"param": "value"},
+            },
         ]
 
         # Execute
@@ -171,7 +171,9 @@ class TestMultipleToolCalls:
         mock_tool2.execute.assert_called_once()
 
         # Find success and error results
-        success_result = next((r for r in tool_results if r["tool_use_id"] == "toolu_success"), None)
+        success_result = next(
+            (r for r in tool_results if r["tool_use_id"] == "toolu_success"), None
+        )
         error_result = next((r for r in tool_results if r["tool_use_id"] == "toolu_failure"), None)
 
         assert success_result is not None, "Missing success result"
@@ -203,7 +205,7 @@ class TestMultipleToolCalls:
                 "type": "tool_use",
                 "id": "toolu_test",
                 "name": "test_tool",
-                "input": {"param": "value"}
+                "input": {"param": "value"},
             }
         ]
 
@@ -216,7 +218,9 @@ class TestMultipleToolCalls:
             return [], []  # Return empty results to simulate the bug
 
         # Test with missing results
-        with patch.object(tool_executor, 'execute_tool_calls', side_effect=mock_execute_with_missing_result):
+        with patch.object(
+            tool_executor, "execute_tool_calls", side_effect=mock_execute_with_missing_result
+        ):
             tool_results, response_parts = tool_executor.execute_tool_calls(assistant_message)
 
             # In the real scenario, this would be caught by the validation logic

@@ -80,8 +80,10 @@ class MockObservabilityService:
 
     def get_observe_decorator(self, name: str):
         """Mock get observe decorator"""
+
         def decorator(func):
             return func
+
         return decorator
 
 

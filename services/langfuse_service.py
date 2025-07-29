@@ -195,7 +195,9 @@ class LangfuseService:
                 metadata={"type": "llm_call", **(metadata or {})},
             )
 
-            logging.debug(f"Created LLM generation for {model_name}, type: {type(llm_generation)}, has update: {hasattr(llm_generation, 'update')}")
+            logging.debug(
+                f"Created LLM generation for {model_name}, type: {type(llm_generation)}, has update: {hasattr(llm_generation, 'update')}"
+            )
             return llm_generation
 
         except Exception as e:
@@ -206,10 +208,14 @@ class LangfuseService:
         self, llm_generation: Any, output: Any, usage: dict[str, Any] = None
     ) -> None:
         """Update an LLM generation with output and usage data"""
-        logging.debug(f"update_llm_observation called - enabled: {self._enabled}, llm_generation: {llm_generation is not None}")
+        logging.debug(
+            f"update_llm_observation called - enabled: {self._enabled}, llm_generation: {llm_generation is not None}"
+        )
 
         if llm_generation is not None:
-            logging.debug(f"LLM generation type: {type(llm_generation)}, has update: {hasattr(llm_generation, 'update')}, has end: {hasattr(llm_generation, 'end')}")
+            logging.debug(
+                f"LLM generation type: {type(llm_generation)}, has update: {hasattr(llm_generation, 'update')}, has end: {hasattr(llm_generation, 'end')}"
+            )
 
         if not self._enabled:
             logging.debug("Langfuse service not enabled, skipping LLM observation update")

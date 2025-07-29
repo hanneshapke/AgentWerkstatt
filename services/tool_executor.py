@@ -64,7 +64,7 @@ class ToolExecutor:
                 "error": error_msg,
                 "tool_name": tool_name,
                 "tool_input": tool_input,
-                "exception_type": type(e).__name__
+                "exception_type": type(e).__name__,
             }
 
             # Update observation with error
@@ -78,13 +78,11 @@ class ToolExecutor:
             # Return error result instead of raising
             return error_result
 
-    def _create_tool_result_message(self, tool_id: str, content: str, is_error: bool = False) -> dict:
+    def _create_tool_result_message(
+        self, tool_id: str, content: str, is_error: bool = False
+    ) -> dict:
         """Create a properly formatted tool result message"""
-        result = {
-            "type": "tool_result",
-            "tool_use_id": tool_id,
-            "content": content
-        }
+        result = {"type": "tool_result", "tool_use_id": tool_id, "content": content}
 
         if is_error:
             result["is_error"] = True
@@ -98,7 +96,7 @@ class ToolExecutor:
             error_info = {
                 "status": "error",
                 "message": result["error"],
-                "tool_name": result.get("tool_name", "unknown")
+                "tool_name": result.get("tool_name", "unknown"),
             }
             return json.dumps(error_info)
         else:
@@ -173,7 +171,9 @@ class ToolExecutor:
                             "is_error": True,
                         }
                         tool_results.append(error_result)
-                        logging.debug(f"Tool {tool_name} (ID: {tool_id}) returned error result: {result['error']}")
+                        logging.debug(
+                            f"Tool {tool_name} (ID: {tool_id}) returned error result: {result['error']}"
+                        )
                         print(f"❌ Tool {tool_name} failed: {result['error']}")
                     else:
                         # Tool execution successful
@@ -192,7 +192,9 @@ class ToolExecutor:
 
                 except Exception as e:
                     # Handle unexpected exceptions during tool execution
-                    logging.error(f"Tool {tool_name} (ID: {tool_id}) execution failed with exception: {e}")
+                    logging.error(
+                        f"Tool {tool_name} (ID: {tool_id}) execution failed with exception: {e}"
+                    )
                     print(f"❌ Error executing tool {tool_name}: {e}")
 
                     # Create a user-friendly error message for Claude
@@ -230,7 +232,9 @@ class ToolExecutor:
                 tool_results.append(placeholder_result)
                 logging.debug(f"Added placeholder result for missing ID: {missing_id}")
 
-        logging.debug(f"Total tool results generated: {len(tool_results)} for {len(tool_use_ids)} tool calls")
+        logging.debug(
+            f"Total tool results generated: {len(tool_results)} for {len(tool_use_ids)} tool calls"
+        )
         logging.debug("=== Tool Execution Complete ===")
 
         # Final validation: ensure every tool result has proper structure
