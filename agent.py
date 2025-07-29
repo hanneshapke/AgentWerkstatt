@@ -51,7 +51,16 @@ class Agent:
         self.tool_executor = tool_executor or self._create_tool_executor()
         self.conversation_handler = conversation_handler or self._create_conversation_handler()
 
+        self._set_logging_verbosity(self.config.verbose)
+
         logging.debug(f"Tools: {self.tools}")
+
+    def _set_logging_verbosity(self, verbose: bool):
+        """Set logging verbosity based on config"""
+        if verbose:
+            logging.set_verbosity(logging.DEBUG)
+        else:
+            logging.set_verbosity(logging.ERROR)
 
     def _create_llm(self) -> BaseLLM:
         """Create LLM based on configuration"""

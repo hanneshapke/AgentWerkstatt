@@ -14,14 +14,6 @@ flags.DEFINE_string(
 )
 
 
-def _set_logging_verbosity(verbose: bool):
-    """Set logging verbosity based on config"""
-    if verbose:
-        logging.set_verbosity(logging.DEBUG)
-    else:
-        logging.set_verbosity(logging.ERROR)
-
-
 def _print_welcome_message(agent: Agent, session_id: str):
     """Print welcome message and status"""
     print("🤖 AgentWerkstatt")
@@ -120,10 +112,6 @@ def main(argv):
         # Load and validate configuration
         config_manager = ConfigManager()
         config = config_manager.load_and_validate(FLAGS.config)
-
-        # Set logging verbosity
-        _set_logging_verbosity(config.verbose)
-
         # Generate or use provided session ID
         session_id = FLAGS.session_id or str(uuid.uuid4())
 
