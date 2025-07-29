@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Optional
 
 from absl import logging
 
@@ -15,7 +16,7 @@ class ConversationHandler:
         memory_service: MemoryServiceProtocol,
         observability_service: ObservabilityServiceProtocol,
         tool_executor: ToolExecutorProtocol,
-        user_id_provider: Callable[[], str] | None = None,
+        user_id_provider: Optional[Callable[[], str]] = None,
     ):
         self.llm = llm
         self.memory_service = memory_service
@@ -24,432 +25,212 @@ class ConversationHandler:
         self.user_id_provider = user_id_provider or self._default_user_id_provider
 
     def _default_user_id_provider(self) -> str:
-        """Default user ID provider. Can be enhanced to support multiple users."""
+        """Default user ID provider"""
         return "default_user"
-
-    def _validate_message_format(self, message: dict) -> bool:
-        """Validate that a message has the correct format for Claude API"""
-        if not isinstance(message, dict):
-            logging.error(f"Message is not a dict: {type(message)} - {message}")
-            return False
-
-        if "role" not in message:
-            logging.error(f"Message missing 'role': {message}")
-            return False
-
-        if "content" not in message:
-            logging.error(f"Message missing 'content': {message}")
-            return False
-
-        # Validate role
-        if message["role"] not in ["user", "assistant", "system"]:
-            logging.error(f"Invalid role '{message['role']}' in message: {message}")
-            return False
-
-        # Validate content format
-        content = message["content"]
-        if isinstance(content, str):
-            # String content is valid
-            return True
-        elif isinstance(content, list):
-            # List content should contain valid content blocks
-            for block in content:
-                if not isinstance(block, dict):
-                    logging.error(f"Content block is not a dict: {type(block)} - {block}")
-                    return False
-                if "type" not in block:
-                    logging.error(f"Content block missing 'type': {block}")
-                    return False
-        else:
-            logging.error(f"Invalid content type: {type(content)} - {content}")
-            return False
-
-        return True
-
-    def _sanitize_conversation(self, messages: list[dict]) -> list[dict]:
-        """Sanitize conversation messages to ensure they're valid for Claude API"""
-        sanitized_messages = []
-
-        for i, message in enumerate(messages):
-            if not self._validate_message_format(message):
-                logging.warning(f"Skipping invalid message at index {i}: {message}")
-                continue
-
-            # Deep copy to avoid modifying original
-            sanitized_message = {"role": message["role"], "content": message["content"]}
-
-            # Ensure content is properly formatted
-            if isinstance(sanitized_message["content"], str):
-                # String content is fine as-is
-                pass
-            elif isinstance(sanitized_message["content"], list):
-                # Validate each content block
-                validated_content = []
-                for block in sanitized_message["content"]:
-                    if isinstance(block, dict) and "type" in block:
-                        validated_content.append(block)
-                    else:
-                        logging.warning(f"Skipping invalid content block: {block}")
-
-                sanitized_message["content"] = validated_content
-
-            sanitized_messages.append(sanitized_message)
-
-        return sanitized_messages
-
-    def _format_tool_results_for_claude(self, tool_results: list[dict]) -> list[dict]:
-        """Format tool results as proper content blocks for Claude"""
-        content_blocks = []
-
-        for tool_result in tool_results:
-            # Ensure tool result has the expected structure
-            if not isinstance(tool_result, dict):
-                logging.warning(f"Invalid tool result format: {tool_result}")
-                continue
-
-            if tool_result.get("type") != "tool_result":
-                logging.warning(f"Tool result missing or invalid type: {tool_result}")
-                continue
-
-            # Tool results should be properly formatted content blocks
-            content_blocks.append(tool_result)
-
-        return content_blocks
 
     def process_message(self, user_input: str, enhanced_input: str) -> str:
         """Process a user message and return the agent's response"""
-
-        # Create message for LLM
-        user_message = {"role": "user", "content": enhanced_input}
-        messages = self.llm.conversation_history + [user_message]
-
-        # Debug: Log conversation before making API call
-        logging.debug("=== Conversation Before API Call ===")
-        logging.debug(f"Conversation history length: {len(self.llm.conversation_history)}")
-        logging.debug(f"Total messages to send: {len(messages)}")
-        if len(messages) > 0:
-            logging.debug(f"Last message in history: {messages[-1]}")
-        logging.debug("=== End Pre-API Debug ===")
-
         try:
+            # Get LLM response
+            messages = self.llm.conversation_history + [{"role": "user", "content": enhanced_input}]
             messages, assistant_message = self.llm.process_request(messages)
 
-            # Handle tool calls if present - isolate tool execution state
-            tool_execution_successful = False
-            tool_results = []
-            final_response_parts = []
+            # Execute any tool calls
+            tool_results, text_parts = self._execute_tools(assistant_message)
 
-            try:
-                tool_results, final_response_parts = self.tool_executor.execute_tool_calls(
-                    assistant_message
-                )
-                tool_execution_successful = True
-                logging.debug(
-                    f"Tool execution completed successfully. Results: {len(tool_results)}"
-                )
-            except Exception as tool_error:
-                logging.error(f"Critical error during tool execution: {tool_error}")
-                # Continue with empty tool results to prevent conversation corruption
-                tool_results = []
-                final_response_parts = []
-
-            if tool_results and tool_execution_successful:
-                # Check if all tools failed
-                all_tools_failed = all(result.get("is_error", False) for result in tool_results)
-
-                if all_tools_failed:
-                    logging.warning("All tool executions failed, providing fallback response")
-                    return self._create_tool_failure_fallback(
-                        user_input, tool_results, final_response_parts
-                    )
-
-                # If there were tool calls, get final response from Claude
-                return self._handle_tool_calls_response(
-                    messages, assistant_message, tool_results, user_input
-                )
+            # Generate final response
+            if tool_results:
+                return self._handle_tool_response(messages, assistant_message, tool_results, user_input)
             else:
-                # No tool calls or tool execution failed, return the text response
-                return self._handle_direct_response(
-                    assistant_message, user_input, final_response_parts
-                )
+                return self._handle_text_response(assistant_message, user_input, text_parts)
 
         except Exception as e:
             logging.error(f"Critical error in message processing: {e}")
-            return self._create_critical_error_fallback(user_input, str(e))
+            return self._create_error_response(user_input, str(e))
 
-    def _handle_tool_calls_response(
+    def _execute_tools(self, assistant_message: list[dict]) -> tuple[list[dict], list[str]]:
+        """Execute tool calls and return results"""
+        try:
+            tool_results, text_parts = self.tool_executor.execute_tool_calls(assistant_message)
+
+            # Check if all tools failed
+            if tool_results and all(result.get("is_error", False) for result in tool_results):
+                logging.warning("All tool executions failed")
+                return [], text_parts  # Treat as no tool results
+
+            logging.debug(f"Tool execution completed: {len(tool_results)} results")
+            return tool_results, text_parts
+
+        except Exception as e:
+            logging.error(f"Tool execution failed: {e}")
+            return [], []
+
+    def _handle_tool_response(
         self,
         messages: list[dict],
         assistant_message: list[dict],
         tool_results: list[dict],
-        original_user_input: str,
+        user_input: str
     ) -> str:
-        """Handle response when tool calls were made"""
-
+        """Handle response when tools were executed"""
         try:
-            # Debug: Log tool execution state before processing
-            logging.debug("=== Tool Calls Response Debug ===")
-            logging.debug(f"Number of tool results received: {len(tool_results)}")
-            tool_use_ids_in_results = {
-                result.get("tool_use_id") for result in tool_results if result.get("tool_use_id")
-            }
-            logging.debug(f"Tool use IDs in results: {tool_use_ids_in_results}")
+            # Build conversation with tool results
+            conversation = self._build_tool_conversation(messages, assistant_message, tool_results)
 
-            # Extract tool use IDs from assistant message for comparison
-            tool_use_ids_in_message = set()
-            for block in assistant_message:
-                if block.get("type") == "tool_use" and block.get("id"):
-                    tool_use_ids_in_message.add(block["id"])
-            logging.debug(f"Tool use IDs in assistant message: {tool_use_ids_in_message}")
-
-            # Check for missing tool results
-            missing_tool_ids = tool_use_ids_in_message - tool_use_ids_in_results
-            if missing_tool_ids:
-                logging.error(f"CRITICAL: Missing tool results for IDs: {missing_tool_ids}")
-
-            logging.debug("=== End Tool Calls Debug ===")
-
-            # Add the assistant's message with tool calls
-            messages = messages + [{"role": "assistant", "content": assistant_message}]
-
-            # Format tool results properly for Claude
-            formatted_tool_results = self._format_tool_results_for_claude(tool_results)
-
-            # Add tool results as user message with proper content blocks
-            messages = messages + [{"role": "user", "content": formatted_tool_results}]
-
-            # Sanitize the complete conversation before final API call
-            sanitized_messages = self._sanitize_conversation(messages)
-
-            # Debug: Log the message structure being sent to Claude
-            logging.debug("=== Tool Call Conversation Structure ===")
-            logging.debug(f"Total sanitized messages: {len(sanitized_messages)}")
-            for i, msg in enumerate(sanitized_messages[-3:]):  # Show last 3 messages
-                logging.debug(
-                    f"Message {len(sanitized_messages) - 3 + i}: role={msg.get('role')}, content_type={type(msg.get('content'))}"
-                )
-            logging.debug("=== End Tool Call Debug ===")
-
-            # Get final response from Claude
-            final_response = self.llm.make_api_request(sanitized_messages)
-
+            # Get final response from LLM
+            final_response = self.llm.make_api_request(conversation)
             if "error" in final_response:
-                error_msg = f"Error getting final response: {final_response['error']}"
-                logging.error(error_msg)
-                return f"❌ {error_msg}"
+                return f"❌ Error getting final response: {final_response['error']}"
 
-            final_content = final_response.get("content", [])
-            final_text = ""
-            for block in final_content:
-                if block.get("type") == "text":
-                    final_text += block["text"]
+            # Extract text from response
+            final_text = self._extract_text_from_response(final_response.get("content", []))
 
-            # Fix: Use consistent conversation history management - append instead of replace
-            # This prevents loss of conversation state during tool execution
-            self.llm.conversation_history.append({"role": "user", "content": original_user_input})
-            self.llm.conversation_history.append(
-                {"role": "assistant", "content": assistant_message}
-            )
-            self.llm.conversation_history.append(
-                {"role": "user", "content": formatted_tool_results}
-            )
-            self.llm.conversation_history.append({"role": "assistant", "content": final_content})
+            # Update conversation history
+            self._update_conversation_history(user_input, assistant_message, tool_results, final_response["content"])
 
-            # Debug: Log final conversation state
-            logging.debug("=== Final Conversation History ===")
-            logging.debug(f"Conversation history length: {len(self.llm.conversation_history)}")
-            logging.debug("=== End Final History Debug ===")
-
-            # Store conversation in memory AFTER all tool execution is complete
-            # This prevents memory service from interfering with tool execution flow
-            try:
-                user_id = self.user_id_provider()
-                self.memory_service.store_conversation(original_user_input, final_text, user_id)
-                logging.debug("Memory storage completed successfully")
-            except Exception as memory_error:
-                logging.warning(f"Failed to store conversation in memory: {memory_error}")
-                # Don't fail the entire request if memory storage fails
-
-            # Update observability with final output
-            self.observability_service.update_observation(final_text)
-
-            # Flush traces to ensure data is submitted to Langfuse
-            self.observability_service.flush_traces()
+            # Handle storage and observability
+            self._finalize_conversation(user_input, final_text)
 
             return final_text
 
         except Exception as e:
-            error_msg = f"Error handling tool calls response: {str(e)}"
+            error_msg = f"Error handling tool response: {str(e)}"
             logging.error(error_msg)
-
-            # Update observability with error
-            self.observability_service.update_observation({"error": error_msg})
-            self.observability_service.flush_traces()
-
+            self._update_observability_with_error(error_msg)
             return f"❌ {error_msg}"
 
-    def _handle_direct_response(
+    def _handle_text_response(
         self,
         assistant_message: list[dict],
-        original_user_input: str,
-        final_response_parts: list[str],
+        user_input: str,
+        text_parts: list[str]
     ) -> str:
-        """Handle direct response when no tool calls were made"""
-
+        """Handle direct text response when no tools were used"""
         try:
-            # No tool calls, return the text response
-            response_text = " ".join(final_response_parts)
+            response_text = " ".join(text_parts) if text_parts else self._extract_text_from_response(assistant_message)
 
-            # Update conversation history (use original user_input for history, not enhanced)
-            self.llm.conversation_history.append({"role": "user", "content": original_user_input})
-            self.llm.conversation_history.append(
-                {"role": "assistant", "content": assistant_message}
-            )
+            # Update conversation history
+            self.llm.conversation_history.append({"role": "user", "content": user_input})
+            self.llm.conversation_history.append({"role": "assistant", "content": assistant_message})
 
-            # Debug: Log conversation state for direct response
-            logging.debug("=== Direct Response - Final History ===")
-            logging.debug(f"Conversation history length: {len(self.llm.conversation_history)}")
-            logging.debug("=== End Direct Response Debug ===")
-
-            # Store conversation in memory AFTER conversation state is finalized
-            # This prevents memory service from interfering with conversation flow
-            try:
-                user_id = self.user_id_provider()
-                self.memory_service.store_conversation(original_user_input, response_text, user_id)
-                logging.debug("Memory storage completed successfully")
-            except Exception as memory_error:
-                logging.warning(f"Failed to store conversation in memory: {memory_error}")
-                # Don't fail the entire request if memory storage fails
-
-            # Update observability with final output
-            self.observability_service.update_observation(response_text)
-
-            # Flush traces to ensure data is submitted to Langfuse
-            self.observability_service.flush_traces()
+            # Handle storage and observability
+            self._finalize_conversation(user_input, response_text)
 
             return response_text
 
         except Exception as e:
-            error_msg = f"Error handling direct response: {str(e)}"
+            error_msg = f"Error handling text response: {str(e)}"
             logging.error(error_msg)
-
-            # Update observability with error
-            self.observability_service.update_observation({"error": error_msg})
-            self.observability_service.flush_traces()
-
+            self._update_observability_with_error(error_msg)
             return f"❌ {error_msg}"
 
-    def clear_history(self) -> None:
-        """Clear conversation history"""
-        self.llm.clear_history()
+    def _build_tool_conversation(
+        self,
+        messages: list[dict],
+        assistant_message: list[dict],
+        tool_results: list[dict]
+    ) -> list[dict]:
+        """Build conversation with tool results for final LLM call"""
+        conversation = messages.copy()
+        conversation.append({"role": "assistant", "content": assistant_message})
 
-    def _validate_conversation_structure(self, messages: list[dict]) -> dict:
-        """
-        Validate conversation structure to ensure it's safe to send to Claude.
+        # Format and add tool results
+        formatted_results = self._format_tool_results(tool_results)
+        conversation.append({"role": "user", "content": formatted_results})
 
-        Specifically checks that:
-        1. Every tool_use has a corresponding tool_result
-        2. Message roles are valid
-        3. Content structure is proper
+        return self._sanitize_conversation(conversation)
 
-        Returns:
-            dict: {"valid": bool, "error": str}
-        """
+    def _format_tool_results(self, tool_results: list[dict]) -> list[dict]:
+        """Format tool results for Claude API"""
+        formatted = []
+        for result in tool_results:
+            if isinstance(result, dict) and result.get("type") == "tool_result":
+                formatted.append(result)
+            else:
+                logging.warning(f"Invalid tool result format: {result}")
+        return formatted
+
+    def _sanitize_conversation(self, messages: list[dict]) -> list[dict]:
+        """Sanitize conversation messages for Claude API"""
+        sanitized = []
+        for i, message in enumerate(messages):
+            if self._is_valid_message(message):
+                sanitized.append({
+                    "role": message["role"],
+                    "content": message["content"]
+                })
+            else:
+                logging.warning(f"Skipping invalid message at index {i}")
+        return sanitized
+
+    def _is_valid_message(self, message: dict) -> bool:
+        """Validate message format"""
+        if not isinstance(message, dict):
+            return False
+        if not all(key in message for key in ["role", "content"]):
+            return False
+        if message["role"] not in ["user", "assistant", "system"]:
+            return False
+        return True
+
+    def _extract_text_from_response(self, content: list[dict]) -> str:
+        """Extract text content from Claude response"""
+        text_parts = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                text_parts.append(block.get("text", ""))
+        return "".join(text_parts)
+
+    def _update_conversation_history(
+        self,
+        user_input: str,
+        assistant_message: list[dict],
+        tool_results: list[dict],
+        final_content: list[dict]
+    ) -> None:
+        """Update conversation history with all parts of tool interaction"""
+        formatted_results = self._format_tool_results(tool_results)
+
+        self.llm.conversation_history.extend([
+            {"role": "user", "content": user_input},
+            {"role": "assistant", "content": assistant_message},
+            {"role": "user", "content": formatted_results},
+            {"role": "assistant", "content": final_content}
+        ])
+
+    def _finalize_conversation(self, user_input: str, response_text: str) -> None:
+        """Handle memory storage and observability"""
+        # Store in memory
+        self._store_in_memory(user_input, response_text)
+
+        # Update observability
+        self.observability_service.update_observation(response_text)
+        self.observability_service.flush_traces()
+
+    def _store_in_memory(self, user_input: str, response_text: str) -> None:
+        """Store conversation in memory with error handling"""
         try:
-            tool_use_ids = set()
-            tool_result_ids = set()
-
-            for i, message in enumerate(messages):
-                # Validate message structure
-                if not isinstance(message, dict):
-                    return {"valid": False, "error": f"Message {i} is not a dictionary"}
-
-                if "role" not in message:
-                    return {"valid": False, "error": f"Message {i} missing 'role' field"}
-
-                if "content" not in message:
-                    return {"valid": False, "error": f"Message {i} missing 'content' field"}
-
-                role = message["role"]
-                content = message["content"]
-
-                # Validate role
-                if role not in ["user", "assistant", "system"]:
-                    return {"valid": False, "error": f"Message {i} has invalid role: {role}"}
-
-                # Check content structure for tool usage
-                if isinstance(content, list):
-                    for j, content_block in enumerate(content):
-                        if not isinstance(content_block, dict):
-                            return {
-                                "valid": False,
-                                "error": f"Message {i} content block {j} is not a dictionary",
-                            }
-
-                        block_type = content_block.get("type")
-
-                        if block_type == "tool_use":
-                            tool_id = content_block.get("id")
-                            if not tool_id:
-                                return {
-                                    "valid": False,
-                                    "error": f"Message {i} tool_use block missing 'id'",
-                                }
-                            tool_use_ids.add(tool_id)
-
-                            # Validate tool_use structure
-                            if "name" not in content_block:
-                                return {
-                                    "valid": False,
-                                    "error": f"Message {i} tool_use block missing 'name'",
-                                }
-                            if "input" not in content_block:
-                                return {
-                                    "valid": False,
-                                    "error": f"Message {i} tool_use block missing 'input'",
-                                }
-
-                        elif block_type == "tool_result":
-                            tool_use_id = content_block.get("tool_use_id")
-                            if not tool_use_id:
-                                return {
-                                    "valid": False,
-                                    "error": f"Message {i} tool_result block missing 'tool_use_id'",
-                                }
-                            tool_result_ids.add(tool_use_id)
-
-                            # Validate tool_result structure
-                            if "content" not in content_block:
-                                return {
-                                    "valid": False,
-                                    "error": f"Message {i} tool_result block missing 'content'",
-                                }
-
-            # Check that every tool_use has a corresponding tool_result
-            missing_results = tool_use_ids - tool_result_ids
-            if missing_results:
-                return {
-                    "valid": False,
-                    "error": f"Missing tool_result blocks for tool_use IDs: {list(missing_results)}",
-                }
-
-            # Check for orphaned tool_results (results without corresponding tool_use)
-            orphaned_results = tool_result_ids - tool_use_ids
-            if orphaned_results:
-                logging.warning(
-                    f"Found orphaned tool_result blocks for IDs: {list(orphaned_results)}"
-                )
-                # This is a warning but not a blocking error
-
-            return {"valid": True, "error": ""}
-
+            user_id = self.user_id_provider()
+            self.memory_service.store_conversation(user_input, response_text, user_id)
+            logging.debug("Memory storage completed")
         except Exception as e:
-            return {"valid": False, "error": f"Validation error: {str(e)}"}
+            logging.warning(f"Failed to store in memory: {e}")
 
-    @property
-    def conversation_length(self) -> int:
-        """Get current conversation length"""
-        return len(self.llm.conversation_history)
+    def _update_observability_with_error(self, error_msg: str) -> None:
+        """Update observability with error information"""
+        try:
+            self.observability_service.update_observation({"error": error_msg})
+            self.observability_service.flush_traces()
+        except Exception as e:
+            logging.warning(f"Failed to update observability: {e}")
+
+    def _create_error_response(self, user_input: str, error: str) -> str:
+        """Create fallback response for critical errors"""
+        fallback_message = "I apologize, but I encountered a system error while processing your request. Please try again later."
+        logging.error(f"Critical error for input '{user_input}': {error}")
+
+        self._update_observability_with_error(error)
+        return fallback_message
 
     def enhance_input_with_memory(self, user_input: str) -> str:
         """Enhance user input with relevant memories"""
@@ -464,62 +245,11 @@ class ConversationHandler:
             logging.warning(f"Failed to enhance input with memory: {e}")
             return user_input
 
-    def _create_tool_failure_fallback(
-        self, user_input: str, tool_results: list[dict], final_response_parts: list[str]
-    ) -> str:
-        """Create a fallback response when all tools fail"""
+    def clear_history(self) -> None:
+        """Clear conversation history"""
+        self.llm.clear_history()
 
-        # Extract the text response if available
-        text_response = " ".join(final_response_parts) if final_response_parts else ""
-
-        # Create a helpful fallback message
-        fallback_message = f"""I apologize, but I encountered issues with the tools needed to fully answer your question about "{user_input}".
-
-The specific issues were:
-"""
-
-        # Add error details
-        for i, result in enumerate(tool_results, 1):
-            tool_content = result.get("content", "Unknown error")
-            fallback_message += f"{i}. {tool_content}\n"
-
-        # Add any text response if available
-        if text_response:
-            fallback_message += f"\nHowever, I can still provide this information: {text_response}"
-        else:
-            fallback_message += (
-                "\nPlease try your request again later, or rephrase your question if possible."
-            )
-
-        # Update conversation history with fallback
-        self.llm.conversation_history.append({"role": "user", "content": user_input})
-        self.llm.conversation_history.append(
-            {"role": "assistant", "content": [{"type": "text", "text": fallback_message}]}
-        )
-
-        # Store in memory
-        user_id = self.user_id_provider()
-        self.memory_service.store_conversation(user_input, fallback_message, user_id)
-
-        # Update observability
-        self.observability_service.update_observation(fallback_message)
-        self.observability_service.flush_traces()
-
-        return fallback_message
-
-    def _create_critical_error_fallback(self, user_input: str, error: str) -> str:
-        """Create a fallback response for critical system errors"""
-
-        fallback_message = "I apologize, but I encountered a system error while processing your request. Please try again later."
-
-        logging.error(f"Critical error fallback for input '{user_input}': {error}")
-
-        # Don't update conversation history for critical errors to avoid corrupting it
-
-        # Update observability with error
-        self.observability_service.update_observation(
-            {"error": error, "fallback_message": fallback_message}
-        )
-        self.observability_service.flush_traces()
-
-        return fallback_message
+    @property
+    def conversation_length(self) -> int:
+        """Get current conversation length"""
+        return len(self.llm.conversation_history)
