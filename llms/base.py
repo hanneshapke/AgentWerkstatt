@@ -9,7 +9,13 @@ load_dotenv()
 class BaseLLM:
     """Abstract base class for all LLMs"""
 
-    def __init__(self, model_name: str, tools: dict[str, Any], agent_objective: str = "", observability_service=None):
+    def __init__(
+        self,
+        model_name: str,
+        tools: dict[str, Any],
+        agent_objective: str = "",
+        observability_service=None,
+    ):
         self.model_name = model_name
         self.api_key = ""
         self.base_url = ""

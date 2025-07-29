@@ -37,11 +37,15 @@ class ObservabilityServiceProtocol(Protocol):
         """Observe tool execution"""
         ...
 
-    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None) -> Any:
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
         """Create a child span for LLM API calls and return a context manager"""
         ...
 
-    def update_llm_observation(self, llm_span: Any, output: Any, usage: dict[str, Any] = None) -> None:
+    def update_llm_observation(
+        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
         """Update an LLM observation with output and usage data"""
         ...
 

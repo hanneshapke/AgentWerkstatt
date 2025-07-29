@@ -9,7 +9,9 @@ from .base import BaseLLM
 class ClaudeLLM(BaseLLM):
     """Claude LLM"""
 
-    def __init__(self, agent_objective: str, model_name: str, tools: dict, observability_service=None):
+    def __init__(
+        self, agent_objective: str, model_name: str, tools: dict, observability_service=None
+    ):
         super().__init__(model_name, tools, agent_objective, observability_service)
 
         self.base_url = "https://api.anthropic.com/v1/messages"
@@ -37,7 +39,7 @@ class ClaudeLLM(BaseLLM):
                     "max_tokens": 2000,
                     "num_tools": len(self.tools) if self.tools else 0,
                     "system_prompt_length": len(self.system_prompt),
-                }
+                },
             )
 
         headers = {
@@ -80,8 +82,7 @@ class ClaudeLLM(BaseLLM):
                     )
                 elif llm_span:
                     self.observability_service.update_llm_observation(
-                        llm_span=llm_span,
-                        output=response_data.get("content", [])
+                        llm_span=llm_span, output=response_data.get("content", [])
                     )
 
                 return response_data
@@ -89,16 +90,14 @@ class ClaudeLLM(BaseLLM):
             error_response = {"error": f"API request failed: {str(e)}"}
             if llm_span:
                 self.observability_service.update_llm_observation(
-                    llm_span=llm_span,
-                    output=error_response
+                    llm_span=llm_span, output=error_response
                 )
             return error_response
         except Exception as e:
             error_response = {"error": f"Unexpected error: {str(e)}"}
             if llm_span:
                 self.observability_service.update_llm_observation(
-                    llm_span=llm_span,
-                    output=error_response
+                    llm_span=llm_span, output=error_response
                 )
             return error_response
 

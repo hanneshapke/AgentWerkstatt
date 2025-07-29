@@ -162,7 +162,9 @@ class LangfuseService:
         except Exception as e:
             logging.error(f"Failed to observe tool execution: {e}")
 
-    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None) -> Any:
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
         """Create a child span for LLM API calls and return a context manager"""
         if not self._enabled or not self._client or not self._current_span:
             return None
@@ -172,11 +174,7 @@ class LangfuseService:
             llm_span = self._current_span.start_as_current_span(
                 name=f"LLM Call: {model_name}",
                 input={"messages": messages, "num_messages": len(messages)},
-                metadata={
-                    "model": model_name,
-                    "type": "llm_call",
-                    **(metadata or {})
-                },
+                metadata={"model": model_name, "type": "llm_call", **(metadata or {})},
             )
 
             logging.debug(f"Created LLM span for {model_name}")
@@ -186,7 +184,9 @@ class LangfuseService:
             logging.error(f"Failed to observe LLM call: {e}")
             return None
 
-    def update_llm_observation(self, llm_span: Any, output: Any, usage: dict[str, Any] = None) -> None:
+    def update_llm_observation(
+        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
         """Update an LLM observation with output and usage data"""
         if not self._enabled or not llm_span:
             return
@@ -264,10 +264,14 @@ class NoOpObservabilityService:
     def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
         pass
 
-    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None) -> Any:
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
         return None
 
-    def update_llm_observation(self, llm_span: Any, output: Any, usage: dict[str, Any] = None) -> None:
+    def update_llm_observation(
+        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
         pass
 
     def update_observation(self, output: Any) -> None:
