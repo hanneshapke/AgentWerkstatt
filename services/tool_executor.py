@@ -63,7 +63,7 @@ class ToolExecutor:
             error_result = {
                 "error": error_msg,
                 "tool_name": tool_name,
-                "tool_input": tool_input,
+                "tool_input": str(tool_input),  # Convert to string for consistent typing
                 "exception_type": type(e).__name__,
             }
 
@@ -71,8 +71,8 @@ class ToolExecutor:
             if tool_span:
                 try:
                     self.observability_service.update_tool_observation(tool_span, error_result)
-                except Exception as e:
-                    logging.warning(f"Failed to update tool observation with error: {e}")
+                except Exception as update_error:  # Use different variable name to avoid shadowing
+                    logging.warning(f"Failed to update tool observation with error: {update_error}")
 
             logging.error(f"Tool {tool_name} execution failed: {e}")
             # Return error result instead of raising
@@ -248,7 +248,7 @@ class ToolExecutor:
 
         return tool_results, final_response_parts
 
-    def _format_tool_content(self, result: any) -> str:
+    def _format_tool_content(self, result: Any) -> str:
         """Format tool result content for Claude API"""
         try:
             if isinstance(result, str):
