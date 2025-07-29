@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import Optional
 
 from absl import logging
 
@@ -16,7 +15,7 @@ class ConversationHandler:
         memory_service: MemoryServiceProtocol,
         observability_service: ObservabilityServiceProtocol,
         tool_executor: ToolExecutorProtocol,
-        user_id_provider: Optional[Callable[[], str]] = None,
+        user_id_provider: Callable[[], str] | None = None,
     ):
         self.llm = llm
         self.memory_service = memory_service
@@ -40,7 +39,9 @@ class ConversationHandler:
 
             # Generate final response
             if tool_results:
-                return self._handle_tool_response(messages, assistant_message, tool_results, user_input)
+                return self._handle_tool_response(
+                    messages, assistant_message, tool_results, user_input
+                )
             else:
                 return self._handle_text_response(assistant_message, user_input, text_parts)
 
@@ -70,7 +71,7 @@ class ConversationHandler:
         messages: list[dict],
         assistant_message: list[dict],
         tool_results: list[dict],
-        user_input: str
+        user_input: str,
     ) -> str:
         """Handle response when tools were executed"""
         try:
@@ -86,7 +87,9 @@ class ConversationHandler:
             final_text = self._extract_text_from_response(final_response.get("content", []))
 
             # Update conversation history
-            self._update_conversation_history(user_input, assistant_message, tool_results, final_response["content"])
+            self._update_conversation_history(
+                user_input, assistant_message, tool_results, final_response["content"]
+            )
 
             # Handle storage and observability
             self._finalize_conversation(user_input, final_text)
@@ -100,18 +103,21 @@ class ConversationHandler:
             return f"❌ {error_msg}"
 
     def _handle_text_response(
-        self,
-        assistant_message: list[dict],
-        user_input: str,
-        text_parts: list[str]
+        self, assistant_message: list[dict], user_input: str, text_parts: list[str]
     ) -> str:
         """Handle direct text response when no tools were used"""
         try:
-            response_text = " ".join(text_parts) if text_parts else self._extract_text_from_response(assistant_message)
+            response_text = (
+                " ".join(text_parts)
+                if text_parts
+                else self._extract_text_from_response(assistant_message)
+            )
 
             # Update conversation history
             self.llm.conversation_history.append({"role": "user", "content": user_input})
-            self.llm.conversation_history.append({"role": "assistant", "content": assistant_message})
+            self.llm.conversation_history.append(
+                {"role": "assistant", "content": assistant_message}
+            )
 
             # Handle storage and observability
             self._finalize_conversation(user_input, response_text)
@@ -125,10 +131,7 @@ class ConversationHandler:
             return f"❌ {error_msg}"
 
     def _build_tool_conversation(
-        self,
-        messages: list[dict],
-        assistant_message: list[dict],
-        tool_results: list[dict]
+        self, messages: list[dict], assistant_message: list[dict], tool_results: list[dict]
     ) -> list[dict]:
         """Build conversation with tool results for final LLM call"""
         conversation = messages.copy()
@@ -155,10 +158,7 @@ class ConversationHandler:
         sanitized = []
         for i, message in enumerate(messages):
             if self._is_valid_message(message):
-                sanitized.append({
-                    "role": message["role"],
-                    "content": message["content"]
-                })
+                sanitized.append({"role": message["role"], "content": message["content"]})
             else:
                 logging.warning(f"Skipping invalid message at index {i}")
         return sanitized
@@ -186,17 +186,19 @@ class ConversationHandler:
         user_input: str,
         assistant_message: list[dict],
         tool_results: list[dict],
-        final_content: list[dict]
+        final_content: list[dict],
     ) -> None:
         """Update conversation history with all parts of tool interaction"""
         formatted_results = self._format_tool_results(tool_results)
 
-        self.llm.conversation_history.extend([
-            {"role": "user", "content": user_input},
-            {"role": "assistant", "content": assistant_message},
-            {"role": "user", "content": formatted_results},
-            {"role": "assistant", "content": final_content}
-        ])
+        self.llm.conversation_history.extend(
+            [
+                {"role": "user", "content": user_input},
+                {"role": "assistant", "content": assistant_message},
+                {"role": "user", "content": formatted_results},
+                {"role": "assistant", "content": final_content},
+            ]
+        )
 
     def _finalize_conversation(self, user_input: str, response_text: str) -> None:
         """Handle memory storage and observability"""

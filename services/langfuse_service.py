@@ -1,12 +1,13 @@
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 from ..config import AgentConfig
 
 # Langfuse imports
 try:
     from langfuse import Langfuse, get_client, observe
+
     LANGFUSE_AVAILABLE = True
 except ImportError:
     LANGFUSE_AVAILABLE = False
@@ -15,6 +16,7 @@ except ImportError:
     def observe(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator if args else decorator
 
 
@@ -23,9 +25,9 @@ class LangfuseService:
 
     def __init__(self, config: AgentConfig):
         self.config = config
-        self._client: Optional[Any] = None
+        self._client: Any | None = None
         self._enabled = False
-        self._current_span: Optional[Any] = None
+        self._current_span: Any | None = None
         self._initialize()
 
     @property
@@ -53,7 +55,9 @@ class LangfuseService:
         """Check if Langfuse is available and enabled"""
         if not LANGFUSE_AVAILABLE:
             if self.config.langfuse_enabled:
-                logging.warning("Langfuse is enabled in config but not installed. Install with: pip install langfuse")
+                logging.warning(
+                    "Langfuse is enabled in config but not installed. Install with: pip install langfuse"
+                )
             return False
 
         if not self.config.langfuse_enabled:
@@ -100,9 +104,7 @@ class LangfuseService:
         try:
             assert self._client is not None  # Type assertion after availability check
             self._current_span = self._client.start_span(
-                name="Agent Request",
-                input=input_data,
-                metadata=metadata
+                name="Agent Request", input=input_data, metadata=metadata
             )
 
             # Update trace with session metadata
@@ -118,7 +120,7 @@ class LangfuseService:
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
 
-    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Optional[Any]:
+    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any | None:
         """Create a generation for tool execution that can be updated later"""
         if not self._is_available() or not self._current_span:
             return None
@@ -150,7 +152,9 @@ class LangfuseService:
         except Exception as e:
             logging.error(f"Failed to update tool observation: {e}")
 
-    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: Optional[dict[str, Any]] = None) -> Optional[Any]:
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
+    ) -> Any | None:
         """Create a generation for LLM API calls"""
         if not self._is_available() or not self._current_span:
             return None
@@ -170,7 +174,9 @@ class LangfuseService:
             logging.error(f"Failed to observe LLM call: {e}")
             return None
 
-    def update_llm_observation(self, llm_generation: Any, output: Any, usage: Optional[dict[str, Any]] = None) -> None:
+    def update_llm_observation(
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
+    ) -> None:
         """Update LLM observation with output and usage data"""
         if not self._is_available() or not llm_generation:
             return
@@ -225,6 +231,7 @@ class LangfuseService:
         # Return no-op decorator
         def decorator(func):
             return func
+
         return decorator
 
     def _is_available(self) -> bool:
@@ -248,10 +255,14 @@ class NoOpObservabilityService:
     def update_tool_observation(self, tool_observation: Any, output: Any) -> None:
         pass
 
-    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: Optional[dict[str, Any]] = None) -> None:
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
+    ) -> None:
         return None
 
-    def update_llm_observation(self, llm_generation: Any, output: Any, usage: Optional[dict[str, Any]] = None) -> None:
+    def update_llm_observation(
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
+    ) -> None:
         pass
 
     def update_observation(self, output: Any) -> None:
@@ -263,4 +274,5 @@ class NoOpObservabilityService:
     def get_observe_decorator(self, name: str):
         def decorator(func):
             return func
+
         return decorator

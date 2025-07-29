@@ -83,7 +83,7 @@ class ToolExecutor:
             error_result = {
                 "error": f"Tool execution failed: {str(e)}",
                 "tool_name": tool_name,
-                "exception_type": type(e).__name__
+                "exception_type": type(e).__name__,
             }
             self._update_tool_observation(tool_span, error_result)
             return error_result
@@ -119,7 +119,7 @@ class ToolExecutor:
         return {
             "type": "tool_result",
             "tool_use_id": tool_id,
-            "content": self._format_tool_content(result)
+            "content": self._format_tool_content(result),
         }
 
     def _create_error_tool_result(self, tool_id: str, tool_name: str, error: str) -> dict:
@@ -128,7 +128,7 @@ class ToolExecutor:
             "type": "tool_result",
             "tool_use_id": tool_id,
             "content": self._create_user_friendly_error(tool_name, error),
-            "is_error": True
+            "is_error": True,
         }
 
     def _format_tool_content(self, result: Any) -> str:
@@ -136,7 +136,7 @@ class ToolExecutor:
         try:
             if isinstance(result, str):
                 return result
-            elif isinstance(result, (dict, list)):
+            elif isinstance(result, dict | list):
                 return json.dumps(result, ensure_ascii=False)
             else:
                 return str(result)
@@ -161,8 +161,7 @@ class ToolExecutor:
         """Validate that all tool calls have corresponding results"""
         # Extract tool IDs from original message
         expected_ids = {
-            block["id"] for block in assistant_message
-            if block.get("type") == "tool_use"
+            block["id"] for block in assistant_message if block.get("type") == "tool_use"
         }
 
         # Extract tool IDs from results
@@ -174,12 +173,14 @@ class ToolExecutor:
             logging.error(f"Missing tool results for IDs: {missing_ids}")
             # Add placeholder results
             for missing_id in missing_ids:
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": missing_id,
-                    "content": "Error: Tool execution failed to complete. No result available.",
-                    "is_error": True
-                })
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": missing_id,
+                        "content": "Error: Tool execution failed to complete. No result available.",
+                        "is_error": True,
+                    }
+                )
 
     # Legacy methods for backward compatibility (marked for removal)
     def execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
