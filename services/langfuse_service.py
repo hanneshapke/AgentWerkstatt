@@ -142,67 +142,100 @@ class LangfuseService:
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
 
-    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
-        """Observe tool execution by creating a child span"""
-        if not self._enabled or not self._client or not self._current_span:
-            return
-
-        try:
-            # Create a child span for tool execution using the correct v3.2.1 API
-            with self._current_span.start_as_current_span(
-                name=f"Tool: {tool_name}",
-                input=tool_input,
-                metadata={"tool_name": tool_name, "type": "tool_execution"},
-            ) as tool_span:
-                # The span will automatically end when exiting the context
-                tool_span.update(output={"status": "executed"})
-
-            logging.debug(f"Created tool span for {tool_name}")
-
-        except Exception as e:
-            logging.error(f"Failed to observe tool execution: {e}")
-
-    def observe_llm_call(
-        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
-    ) -> Any:
-        """Create a child span for LLM API calls and return a context manager"""
+    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any:
+        """Observe tool execution by creating a child generation that can be updated later"""
         if not self._enabled or not self._client or not self._current_span:
             return None
 
         try:
-            # Create a child span for LLM call
-            llm_span = self._current_span.start_as_current_span(
-                name=f"LLM Call: {model_name}",
-                input={"messages": messages, "num_messages": len(messages)},
-                metadata={"model": model_name, "type": "llm_call", **(metadata or {})},
+            # Create a child generation for tool execution - similar to LLM calls
+            # This allows us to update it with actual results later
+            tool_generation = self._current_span.start_generation(
+                name=f"Tool: {tool_name}",
+                input=tool_input,
+                metadata={"tool_name": tool_name, "type": "tool_execution"},
             )
 
-            logging.debug(f"Created LLM span for {model_name}")
-            return llm_span
+            logging.debug(f"Created tool generation for {tool_name}, type: {type(tool_generation)}")
+            return tool_generation
+
+        except Exception as e:
+            logging.error(f"Failed to observe tool execution: {e}")
+            return None
+
+    def update_tool_observation(self, tool_generation: Any, output: Any) -> None:
+        """Update a tool generation with output data"""
+        if not self._enabled or not tool_generation:
+            return
+
+        try:
+            logging.debug(f"Updating tool observation with output: {type(output)}")
+            tool_generation.update(output=output)
+            tool_generation.end()
+            logging.debug("Successfully updated and ended tool generation")
+
+        except Exception as e:
+            logging.error(f"Failed to update tool observation: {e}")
+            # Re-raise the exception to make debugging easier
+            raise
+
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
+        """Create a generation for LLM API calls"""
+        if not self._enabled or not self._client or not self._current_span:
+            return None
+
+        try:
+            # Create a child generation using the current span - manual pattern for later updates
+            llm_generation = self._current_span.start_generation(
+                name=f"LLM Call: {model_name}",
+                input=messages,
+                model=model_name,
+                metadata={"type": "llm_call", **(metadata or {})},
+            )
+
+            logging.debug(f"Created LLM generation for {model_name}, type: {type(llm_generation)}, has update: {hasattr(llm_generation, 'update')}")
+            return llm_generation
 
         except Exception as e:
             logging.error(f"Failed to observe LLM call: {e}")
             return None
 
     def update_llm_observation(
-        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] = None
     ) -> None:
-        """Update an LLM observation with output and usage data"""
-        if not self._enabled or not llm_span:
+        """Update an LLM generation with output and usage data"""
+        logging.debug(f"update_llm_observation called - enabled: {self._enabled}, llm_generation: {llm_generation is not None}")
+
+        if llm_generation is not None:
+            logging.debug(f"LLM generation type: {type(llm_generation)}, has update: {hasattr(llm_generation, 'update')}, has end: {hasattr(llm_generation, 'end')}")
+
+        if not self._enabled:
+            logging.debug("Langfuse service not enabled, skipping LLM observation update")
+            return
+
+        if not llm_generation:
+            logging.debug("No LLM generation provided, skipping LLM observation update")
             return
 
         try:
             update_data = {"output": output}
             if usage:
-                update_data["usage"] = usage
+                update_data["usage_details"] = usage  # v3 uses usage_details
+                logging.debug(f"Updating LLM generation with usage: {usage}")
+            else:
+                logging.debug("Updating LLM generation without usage data")
 
-            llm_span.update(**update_data)
-            llm_span.end()
+            llm_generation.update(**update_data)
+            llm_generation.end()
 
-            logging.debug("Updated LLM observation with output and usage")
+            logging.debug("Successfully updated LLM generation with output and usage")
 
         except Exception as e:
             logging.error(f"Failed to update LLM observation: {e}")
+            # Re-raise the exception to make debugging easier
+            raise
 
     def update_observation(self, output: Any) -> None:
         """Update current observation with output and end the span"""
@@ -231,13 +264,17 @@ class LangfuseService:
     def flush_traces(self) -> None:
         """Flush any pending Langfuse traces"""
         if not self._enabled or not self._client:
+            logging.debug("Langfuse service not enabled or no client, skipping flush")
             return
 
         try:
+            logging.debug("Flushing Langfuse traces...")
             self._client.flush()
             logging.debug("Langfuse traces flushed successfully")
         except Exception as e:
             logging.error(f"Failed to flush Langfuse traces: {e}")
+            # Re-raise the exception to make debugging easier
+            raise
 
     def get_observe_decorator(self, name: str):
         """Get the observe decorator for function decoration"""
@@ -261,7 +298,10 @@ class NoOpObservabilityService:
     def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
         pass
 
-    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
+    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any:
+        return None
+
+    def update_tool_observation(self, tool_observation: Any, output: Any) -> None:
         pass
 
     def observe_llm_call(
@@ -270,7 +310,7 @@ class NoOpObservabilityService:
         return None
 
     def update_llm_observation(
-        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] = None
     ) -> None:
         pass
 

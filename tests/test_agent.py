@@ -34,27 +34,55 @@ class MockObservabilityService:
     """Mock observability service for testing"""
 
     def __init__(self, enabled: bool = True):
+        """Mock observability service"""
         self._enabled = enabled
-        self.observed_requests = []
-        self.observed_tools = []
         self.observations = []
         self.flushed = False
+        self.tool_executions = []
+        self.observed_requests = []
 
     @property
     def is_enabled(self) -> bool:
         return self._enabled
 
     def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
+        """Mock observe request"""
         self.observed_requests.append((input_data, metadata))
 
-    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
-        self.observed_tools.append((tool_name, tool_input))
+    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any:
+        """Mock observe tool execution"""
+        self.tool_executions.append({"tool_name": tool_name, "tool_input": tool_input})
+        return f"mock_tool_span_{tool_name}"
+
+    def update_tool_observation(self, tool_observation: Any, output: Any) -> None:
+        """Mock update tool observation"""
+        pass
+
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
+        """Mock observe LLM call"""
+        return f"mock_llm_span_{model_name}"
+
+    def update_llm_observation(
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
+        """Mock update LLM observation"""
+        pass
 
     def update_observation(self, output: Any) -> None:
+        """Mock update observation"""
         self.observations.append(output)
 
     def flush_traces(self) -> None:
+        """Mock flush traces"""
         self.flushed = True
+
+    def get_observe_decorator(self, name: str):
+        """Mock get observe decorator"""
+        def decorator(func):
+            return func
+        return decorator
 
 
 class MockToolExecutor:
@@ -234,17 +262,26 @@ def test_conversation_length_tracking(mock_config, mock_services):
 
 # Integration test example
 def test_tool_execution_integration():
-    """Example of how to test tool execution in isolation"""
-    mock_tool_registry = Mock()
+    """Test that tool execution integrates properly with observability"""
+    # Mock a tool
     mock_tool = Mock()
     mock_tool.execute.return_value = {"result": "success"}
+
+    # Mock tool registry
+    mock_tool_registry = Mock()
     mock_tool_registry.get_tool_by_name.return_value = mock_tool
 
+    # Mock observability service
     observability_service = MockObservabilityService()
+
+    # Create tool executor
     tool_executor = ToolExecutor(mock_tool_registry, observability_service)
 
     result = tool_executor.execute_tool("test_tool", {"param": "value"})
 
     assert result == {"result": "success"}
-    assert len(observability_service.observed_tools) == 1
-    assert observability_service.observed_tools[0] == ("test_tool", {"param": "value"})
+    # Verify tool execution was observed
+    assert len(observability_service.tool_executions) == 1
+    tool_execution = observability_service.tool_executions[0]
+    assert tool_execution["tool_name"] == "test_tool"
+    assert tool_execution["tool_input"] == {"param": "value"}
