@@ -36,14 +36,18 @@ class Agent:
         self.config = config
         self.session_id = session_id
 
-        # Initialize tool registry and LLM
+        # Initialize tool registry first
         self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
         self.tools = self.tool_registry.get_tools()
-        self.llm = llm or self._create_llm()
 
-        # Initialize services with dependency injection
+        # Initialize services first (order matters for dependencies)
         self.memory_service = memory_service or self._create_memory_service()
         self.observability_service = observability_service or self._create_observability_service()
+
+        # Initialize LLM after observability service is available
+        self.llm = llm or self._create_llm()
+
+        # Initialize remaining services
         self.tool_executor = tool_executor or self._create_tool_executor()
         self.conversation_handler = conversation_handler or self._create_conversation_handler()
 
@@ -55,6 +59,7 @@ class Agent:
             agent_objective=self.config.agent_objective,
             model_name=self.config.model,
             tools=self.tools,
+            observability_service=self.observability_service,
         )
 
     def _create_memory_service(self) -> MemoryServiceProtocol:
@@ -113,18 +118,3 @@ class Agent:
         response = self.conversation_handler.process_message(user_input, enhanced_input)
 
         return response
-
-
-# Factory function for easier instantiation
-def create_agent(config: AgentConfig, session_id: str | None = None) -> Agent:
-    """
-    Factory function to create an agent with default dependencies
-
-    Args:
-        config: Agent configuration
-        session_id: Optional session ID for grouping traces
-
-    Returns:
-        Configured Agent instance
-    """
-    return Agent(config, session_id=session_id)

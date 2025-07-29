@@ -22,7 +22,7 @@ class MemoryServiceProtocol(Protocol):
 
 
 class ObservabilityServiceProtocol(Protocol):
-    """Protocol for observability service implementations"""
+    """Protocol for observability service operations"""
 
     @property
     def is_enabled(self) -> bool:
@@ -37,12 +37,28 @@ class ObservabilityServiceProtocol(Protocol):
         """Observe tool execution"""
         ...
 
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
+        """Create a child span for LLM API calls and return a context manager"""
+        ...
+
+    def update_llm_observation(
+        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
+        """Update an LLM observation with output and usage data"""
+        ...
+
     def update_observation(self, output: Any) -> None:
-        """Update current observation with output"""
+        """Update current observation"""
         ...
 
     def flush_traces(self) -> None:
         """Flush any pending traces"""
+        ...
+
+    def get_observe_decorator(self, name: str):
+        """Get the observe decorator for function decoration"""
         ...
 
 

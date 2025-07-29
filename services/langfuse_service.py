@@ -162,6 +162,48 @@ class LangfuseService:
         except Exception as e:
             logging.error(f"Failed to observe tool execution: {e}")
 
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
+        """Create a child span for LLM API calls and return a context manager"""
+        if not self._enabled or not self._client or not self._current_span:
+            return None
+
+        try:
+            # Create a child span for LLM call
+            llm_span = self._current_span.start_as_current_span(
+                name=f"LLM Call: {model_name}",
+                input={"messages": messages, "num_messages": len(messages)},
+                metadata={"model": model_name, "type": "llm_call", **(metadata or {})},
+            )
+
+            logging.debug(f"Created LLM span for {model_name}")
+            return llm_span
+
+        except Exception as e:
+            logging.error(f"Failed to observe LLM call: {e}")
+            return None
+
+    def update_llm_observation(
+        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
+        """Update an LLM observation with output and usage data"""
+        if not self._enabled or not llm_span:
+            return
+
+        try:
+            update_data = {"output": output}
+            if usage:
+                update_data["usage"] = usage
+
+            llm_span.update(**update_data)
+            llm_span.end()
+
+            logging.debug("Updated LLM observation with output and usage")
+
+        except Exception as e:
+            logging.error(f"Failed to update LLM observation: {e}")
+
     def update_observation(self, output: Any) -> None:
         """Update current observation with output and end the span"""
         if not self._enabled or not self._client or not self._current_span:
@@ -220,6 +262,16 @@ class NoOpObservabilityService:
         pass
 
     def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> None:
+        pass
+
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
+    ) -> Any:
+        return None
+
+    def update_llm_observation(
+        self, llm_span: Any, output: Any, usage: dict[str, Any] = None
+    ) -> None:
         pass
 
     def update_observation(self, output: Any) -> None:
