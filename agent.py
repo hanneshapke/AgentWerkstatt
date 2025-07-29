@@ -31,8 +31,10 @@ class Agent:
         observability_service: ObservabilityServiceProtocol | None = None,
         tool_executor: ToolExecutorProtocol | None = None,
         conversation_handler: ConversationHandlerProtocol | None = None,
+        session_id: str | None = None,
     ):
         self.config = config
+        self.session_id = session_id
 
         # Initialize tool registry and LLM
         self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
@@ -80,22 +82,27 @@ class Agent:
             tool_executor=self.tool_executor,
         )
 
-    def process_request(self, user_input: str) -> str:
+    def process_request(self, user_input: str, session_id: str | None = None) -> str:
         """
         Process user request using the conversation handler
 
         Args:
             user_input: User's request as a string
+            session_id: Optional session ID to group related traces
 
         Returns:
             Response string from the agent
         """
+
+        # Use provided session_id or fall back to instance session_id
+        current_session_id = session_id or self.session_id
 
         # Start observing the request
         metadata = {
             "model": self.llm.model_name,
             "project": self.config.langfuse_project_name,
             "memory_enabled": self.memory_service.is_enabled,
+            "session_id": current_session_id,
         }
         self.observability_service.observe_request(user_input, metadata)
 
@@ -109,14 +116,15 @@ class Agent:
 
 
 # Factory function for easier instantiation
-def create_agent(config: AgentConfig) -> Agent:
+def create_agent(config: AgentConfig, session_id: str | None = None) -> Agent:
     """
     Factory function to create an agent with default dependencies
 
     Args:
         config: Agent configuration
+        session_id: Optional session ID for grouping traces
 
     Returns:
         Configured Agent instance
     """
-    return Agent(config)
+    return Agent(config, session_id=session_id)

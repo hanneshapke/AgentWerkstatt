@@ -111,6 +111,9 @@ class LangfuseService:
         try:
             logging.debug("Creating Langfuse trace for agent request")
 
+            # Extract session_id from metadata
+            session_id = metadata.get("session_id")
+
             # Create a new span for this request using the correct v3.2.1 API
             self._current_span = self._client.start_span(
                 name="Agent Request", input=input_data, metadata=metadata
@@ -119,7 +122,7 @@ class LangfuseService:
             # Update the trace with metadata using the span
             self._current_span.update_trace(
                 name="Agent Processing",
-                session_id=metadata.get("session_id"),
+                session_id=session_id,  # Now properly using the session_id
                 user_id=metadata.get("user_id"),
                 tags=["agent", "request"],
             )
@@ -127,9 +130,14 @@ class LangfuseService:
             # Store reference to the trace ID for child spans
             self._current_trace = self._current_span  # The span provides access to trace operations
 
-            logging.debug(
-                f"Created span {self._current_span.id} with trace {self._current_span.trace_id}"
-            )
+            if session_id:
+                logging.debug(
+                    f"Created span {self._current_span.id} with trace {self._current_span.trace_id} in session {session_id}"
+                )
+            else:
+                logging.debug(
+                    f"Created span {self._current_span.id} with trace {self._current_span.trace_id}"
+                )
 
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
