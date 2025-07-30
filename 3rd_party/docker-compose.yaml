@@ -10,7 +10,6 @@ services:
       context: https://github.com/mem0ai/mem0.git
       dockerfile: server/dev.Dockerfile
     image: mem0-base
-    profiles: ["build-only"]
 
   mem0:
     build:
@@ -33,6 +32,8 @@ services:
       - mem0_data:/app/.mem0
       - ./mem0-config.yaml:/app/config.yaml:ro
     depends_on:
+      mem0-base:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       neo4j:
