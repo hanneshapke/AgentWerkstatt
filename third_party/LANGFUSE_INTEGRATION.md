@@ -188,7 +188,7 @@ With Langfuse integration, you get:
 
 ## Self-Hosted Langfuse
 
-If you prefer to run Langfuse locally, follow the [docker-compose setup](./3rd_party/LANGFUSE_SETUP.md) in this repository, then set:
+If you prefer to run Langfuse locally, follow the [docker-compose setup](./LANGFUSE_SETUP.md) in this repository, then set:
 
 ```bash
 export LANGFUSE_HOST="http://localhost:3000"

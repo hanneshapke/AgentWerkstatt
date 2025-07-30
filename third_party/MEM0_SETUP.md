@@ -28,7 +28,7 @@ Set the following environment variable before starting the services:
 export OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-Or create a `.env` file in the `3rd_party` directory:
+Or create a `.env` file in the `third_party` directory:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
@@ -65,14 +65,14 @@ OPENAI_API_KEY=your_openai_api_key_here
 ### Starting the Services
 
 ```bash
-cd 3rd_party
+cd third_party
 docker compose up -d mem0 neo4j postgres
 ```
 
 Or from the project root:
 
 ```bash
-docker compose -f 3rd_party/docker-compose.yaml up -d
+docker compose -f third_party/docker-compose.yaml up -d
 ```
 
 ### Building from Source
@@ -144,9 +144,9 @@ Memory data is persisted in Docker volumes:
 Check the logs if services aren't starting properly:
 
 ```bash
-docker compose -f 3rd_party/docker-compose.yaml logs mem0
-docker compose -f 3rd_party/docker-compose.yaml logs neo4j
-docker compose -f 3rd_party/docker-compose.yaml logs postgres
+docker compose -f third_party/docker-compose.yaml logs mem0
+docker compose -f third_party/docker-compose.yaml logs neo4j
+docker compose -f third_party/docker-compose.yaml logs postgres
 ```
 
 ### Common Issues

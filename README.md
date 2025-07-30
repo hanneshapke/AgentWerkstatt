@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/hanneshapke/AgentWerkstatt/blob/main/misc/agent-werkstatt-logo.png?raw=true" alt="AgentWerkstatt Logo" width="400">
+  <img src="https://github.com/hanneshapke/AgentWerkstatt/blob/main/docs/agent-werkstatt-logo.png?raw=true" alt="AgentWerkstatt Logo" width="400">
 </p>
 
 <p align="center">
@@ -104,16 +104,16 @@ To start the services:
 
 ```bash
 # Start all services
-docker compose -f 3rd_party/docker-compose.yaml up -d
+docker compose -f third_party/docker-compose.yaml up -d
 
 # Or start specific services
-docker compose -f 3rd_party/docker-compose.yaml up -d mem0 neo4j postgres
+docker compose -f third_party/docker-compose.yaml up -d mem0 neo4j postgres
 ```
 
 For detailed setup instructions, see:
-- [MEM0_SETUP.md](3rd_party/MEM0_SETUP.md) - Memory system setup
-- [LANGFUSE_SETUP.md](3rd_party/LANGFUSE_SETUP.md) - Observability setup
-- [LANGFUSE_INTEGRATION.md](3rd_party/LANGFUSE_INTEGRATION.md) - Integration guide
+- [MEM0_SETUP.md](third_party/MEM0_SETUP.md) - Memory system setup
+- [LANGFUSE_SETUP.md](third_party/LANGFUSE_SETUP.md) - Observability setup
+- [LANGFUSE_INTEGRATION.md](third_party/LANGFUSE_INTEGRATION.md) - Integration guide
 
 ### API Keys Setup
 
@@ -215,85 +215,20 @@ python agent.py --config my_custom_config.yaml
 python agent.py --help
 ```
 
-## Architecture
+## Documentation
 
-### Core Components
+For comprehensive documentation, please visit our [documentation directory](docs/):
 
-```
-AgentWerkstatt/
-├── agent.py               # Main agent implementation and CLI
-├── agent_config.yaml      # Default configuration
-├── llms/                  # LLM provider modules
-│   ├── base.py           # Base LLM abstraction
-│   ├── claude.py         # Claude implementation
-│   └── __init__.py
-├── tools/                # Tool modules
-│   ├── base.py          # Base tool abstraction
-│   ├── discovery.py     # Automatic tool discovery
-│   ├── websearch.py     # Tavily web search tool
-│   └── __init__.py
-├── 3rd_party/           # Third-party service integrations
-│   ├── docker-compose.yaml    # Service orchestration
-│   ├── Dockerfile.mem0        # Custom mem0 build
-│   ├── mem0-config.yaml       # Memory system config
-│   ├── MEM0_SETUP.md          # Memory setup guide
-│   ├── LANGFUSE_SETUP.md      # Observability setup
-│   └── LANGFUSE_INTEGRATION.md # Integration guide
-└── pyproject.toml       # Project configuration
-```
+- 📚 **[Complete Documentation](docs/index.md)** - Main documentation hub
+- 🚀 **[Getting Started](docs/getting-started.md)** - Installation and quick start guide
+- 🏗️ **[Architecture](docs/architecture.md)** - Framework design and components
+- ⚙️ **[Configuration](docs/configuration.md)** - Environment setup and configuration options
+- 🛠️ **[Development Guide](docs/development.md)** - Contributing and extending the framework
+- 📖 **[API Reference](docs/api-reference.md)** - Detailed API documentation
 
-### LLM Providers
+## Quick Configuration Reference
 
-The framework uses a base `BaseLLM` class that can be extended for different providers:
-
-- **Claude (Anthropic)** - Full support with tool calling
-- **Future providers** - Easy to add by extending `BaseLLM`
-
-### Tools
-
-Tools are modular components that extend agent capabilities:
-
-- **Web Search** - Tavily API integration for real-time information retrieval
-- **Automatic Discovery** - Tools are automatically discovered from the tools directory
-- **Extensible** - Add new tools by implementing `BaseTool`
-
-### Memory System
-
-Optional mem0 integration provides:
-
-- **Persistent Context** - Long-term memory across conversations
-- **Semantic Search** - Vector-based memory retrieval
-- **Graph Relationships** - Knowledge graph storage in Neo4j
-- **REST API** - Direct access to memory operations
-
-### Agent System
-
-The `Agent` class orchestrates:
-- LLM interactions
-- Tool execution and discovery
-- Conversation management
-- Response generation
-- Memory persistence (when enabled)
-
-## Configuration
-
-### Environment Variables
-
-#### Core
-- `ANTHROPIC_API_KEY` - Required for Claude API access
-- `TAVILY_API_KEY` - Optional, for web search functionality
-
-#### Memory (mem0)
-- `OPENAI_API_KEY` - Required for mem0 memory system (LLM and embeddings)
-
-#### Observability (Langfuse)
-- `LANGFUSE_PUBLIC_KEY` - Optional, for Langfuse tracing integration
-- `LANGFUSE_SECRET_KEY` - Optional, for Langfuse tracing integration
-- `LANGFUSE_HOST` - Optional, Langfuse host URL (defaults to cloud.langfuse.com)
-
-### Configuration File
-
-Default configuration in `agent_config.yaml`:
+Basic configuration in `agent_config.yaml`:
 
 ```yaml
 # LLM Model Configuration
@@ -305,17 +240,6 @@ tools_dir: "./tools"
 # Logging Configuration
 verbose: true
 
-# Memory Configuration (Optional)
-memory:
-  enabled: false               # Set to true to enable mem0 integration
-  model_name: "gpt-4o-mini"   # Model for memory processing
-  server_url: "http://localhost:8000"  # mem0 server endpoint
-
-# Langfuse Configuration (Optional)
-langfuse:
-  enabled: true  # Set to false to disable tracing
-  project_name: "agentwerkstatt"
-
 # Agent Objective/System Prompt
 agent_objective: |
   You are a helpful assistant with web search capabilities.
@@ -323,164 +247,11 @@ agent_objective: |
   Always be conversational and helpful in your responses.
 ```
 
-### Memory Configuration
+**Environment Variables:**
+- `ANTHROPIC_API_KEY` - Required for Claude API access
+- `TAVILY_API_KEY` - Optional, for web search functionality
 
-To enable persistent memory with mem0:
-
-1. Install memory dependencies: `uv sync --extra memory`
-2. Start the mem0 service: `docker compose -f 3rd_party/docker-compose.yaml up -d mem0`
-3. Set your OpenAI API key for memory operations
-4. Enable memory in your configuration:
-   ```yaml
-   memory:
-     enabled: true
-     model_name: "gpt-4o-mini"
-     server_url: "http://localhost:8000"
-   ```
-
-### Model Configuration
-
-To use a different model programmatically:
-
-```python
-config = AgentConfig(model="claude-sonnet-4-20250514")
-agent = Agent(config)
-```
-
-### Observability with Langfuse
-
-AgentWerkstatt includes optional integration with [Langfuse](https://langfuse.com) for comprehensive observability:
-
-- **Automatic Tracing**: All agent interactions, LLM calls, and tool executions are automatically traced
-- **Performance Monitoring**: Track costs, latency, and token usage
-- **Debugging**: Detailed execution flow for troubleshooting
-- **Analytics**: Historical data and performance insights
-
-To enable Langfuse tracing:
-
-1. Install the tracing dependencies: `uv sync --extra tracing`
-2. Set up your Langfuse credentials (see [Environment Variables](#environment-variables))
-3. Enable tracing in your configuration:
-   ```yaml
-   langfuse:
-     enabled: true
-     project_name: "your-project-name"
-   ```
-
-**Note**: Langfuse is completely optional. AgentWerkstatt works perfectly without it.
-
-For detailed setup instructions, see [LANGFUSE_INTEGRATION.md](3rd_party/LANGFUSE_INTEGRATION.md).
-
-## Development
-
-### Adding a New LLM Provider
-
-1. Create a new file in `llms/` (e.g., `openai.py`)
-2. Implement the `BaseLLM` interface:
-
-```python
-from .base import BaseLLM
-
-class OpenAILLM(BaseLLM):
-    def __init__(self, model_name: str, tools: list, agent_objective: str = ""):
-        super().__init__(model_name, tools, agent_objective)
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        # Set other provider-specific configurations
-
-    def make_api_request(self, messages: list[dict]) -> dict:
-        # Implement API request logic
-        pass
-
-    def process_request(self, messages: list[dict]) -> tuple[list[dict], list[dict]]:
-        # Implement request processing
-        pass
-```
-
-3. Update `llms/__init__.py` to export the new provider
-
-### Adding a New Tool
-
-1. Create a new file in `tools/` (e.g., `weather.py`)
-2. Implement the `BaseTool` interface:
-
-```python
-from .base import BaseTool
-from typing import Any
-
-class WeatherTool(BaseTool):
-    def _get_name(self) -> str:
-        return "Weather Tool"
-
-    def _get_description(self) -> str:
-        return "Get weather information for a location"
-
-    def get_schema(self) -> dict[str, Any]:
-        return {
-            "name": self.get_name(),
-            "description": self.get_description(),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "location": {
-                        "type": "string",
-                        "description": "City or location name"
-                    }
-                },
-                "required": ["location"]
-            }
-        }
-
-    def execute(self, **kwargs) -> dict[str, Any]:
-        # Implement tool logic
-        location = kwargs.get("location")
-        # Your weather API logic here
-        return {"weather": f"Sunny in {location}"}
-```
-
-3. The tool will be automatically discovered by the `ToolRegistry` - no manual registration needed!
-
-### Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/hanneshapke/agentwerkstatt.git
-cd agentwerkstatt
-uv sync --dev
-
-# Code formatting and linting
-uv run ruff check --fix
-uv run ruff format
-
-# Type checking
-uv run mypy .
-
-# Run tests
-uv run pytest
-
-# Run tests with coverage
-uv run pytest --cov=agentwerkstatt --cov-report=html --cov-report=term
-```
-
-### Quality Assurance
-
-The project uses modern Python development tools:
-
-- **Ruff** - Fast Python linter and formatter (replaces black, flake8, isort)
-- **MyPy** - Static type checking
-- **Pytest** - Testing framework
-- **Pre-commit** - Git hooks for code quality
-
-## Dependencies
-
-Core dependencies:
-- `httpx` - Modern HTTP client for API requests
-- `python-dotenv` - Environment variable management
-- `absl-py` - Google's Python common libraries
-- `PyYAML` - YAML configuration file support
-
-Optional dependencies:
-- `langfuse` - Observability and tracing (with `--extra tracing`)
-- `mem0ai` - Memory system integration (with `--extra memory`)
+For complete configuration options, see the [Configuration Guide](docs/configuration.md).
 
 ## Roadmap
 
@@ -526,11 +297,11 @@ The license is still under development.
 
 ## Support
 
-- 📚 [Documentation](https://github.com/hanneshapke/agentwerkstatt#readme)
+- 📚 [Documentation](docs/index.md)
 - 🐛 [Bug Reports](https://github.com/hanneshapke/agentwerkstatt/issues)
 - 💬 [Discussions](https://github.com/hanneshapke/agentwerkstatt/discussions)
-- 🔧 [MEM0 Setup Guide](3rd_party/MEM0_SETUP.md)
-- 📊 [Langfuse Integration Guide](3rd_party/LANGFUSE_INTEGRATION.md)
+- 🔧 [MEM0 Setup Guide](third_party/MEM0_SETUP.md)
+- 📊 [Langfuse Integration Guide](third_party/LANGFUSE_INTEGRATION.md)
 
 ---
 
