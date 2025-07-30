@@ -17,6 +17,6 @@ while True:
     print(f"🤖 Agent: {response}")
 
     # Check if agent wants to terminate
-    if '[TASK_COMPLETE]' in response:
+    if "[TASK_COMPLETE]" in response:
         print("\n✅ Agent has indicated the task is complete. Ending conversation.")
         break
