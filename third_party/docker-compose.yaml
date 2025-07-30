@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile.mem0
       args:
         MEM0_IMAGE: mem0-base
-    container_name: 3rd_party_mem0
+    container_name: third_party_mem0
     restart: unless-stopped
     networks:
       - default
@@ -48,7 +48,7 @@ services:
   langfuse-worker:
     image: docker.io/langfuse/langfuse-worker:3
     restart: always
-    container_name: 3rd_party_langfuse-worker
+    container_name: third_party_langfuse-worker
     depends_on: &langfuse-depends-on
       postgres:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
   langfuse-web:
     image: docker.io/langfuse/langfuse:3
     restart: always
-    container_name: 3rd_party_langfuse-web
+    container_name: third_party_langfuse-web
     depends_on: *langfuse-depends-on
     ports:
       - 3000:3000

@@ -75,7 +75,7 @@ def test_mem0_service() -> dict[str, Any]:
         results["error_messages"].append(f"Connection failed: {e}")
         results["recommendations"].extend(
             [
-                "Start mem0 service with: docker compose -f 3rd_party/docker-compose.yaml up -d mem0",
+                "Start mem0 service with: docker compose -f third_party/docker-compose.yaml up -d mem0",
                 "Or check if mem0 server is running on the configured URL",
             ]
         )
