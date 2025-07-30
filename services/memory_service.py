@@ -65,7 +65,7 @@ class MemoryService:
             logging.error(f"Failed to initialize mem0: {e}")
             print(f"❌ Memory setup failed: {e}")
             print(
-                "💡 Make sure mem0 service is running: docker compose -f 3rd_party/docker-compose.yaml up -d mem0"
+                "💡 Make sure mem0 service is running: docker compose -f third_party/docker-compose.yaml up -d mem0"
             )
             self._enabled = False
 
