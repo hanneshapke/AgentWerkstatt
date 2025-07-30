@@ -57,7 +57,7 @@ class ConversationHandler:
             # Check if all tools failed
             if tool_results and all(result.get("is_error", False) for result in tool_results):
                 logging.warning("All tool executions failed")
-                return [], text_parts  # Treat as no tool results
+                # Still return tool results - Claude requires tool_result for every tool_use
 
             logging.debug(f"Tool execution completed: {len(tool_results)} results")
             return tool_results, text_parts
@@ -113,11 +113,16 @@ class ConversationHandler:
                 else self._extract_text_from_response(assistant_message)
             )
 
-            # Update conversation history
-            self.llm.conversation_history.append({"role": "user", "content": user_input})
-            self.llm.conversation_history.append(
-                {"role": "assistant", "content": assistant_message}
-            )
+            # Don't update conversation history if this is an error message
+            if not response_text.startswith("❌ Error communicating with Claude"):
+                # Update conversation history only for successful responses
+                self.llm.conversation_history.append({"role": "user", "content": user_input})
+                self.llm.conversation_history.append(
+                    {"role": "assistant", "content": assistant_message}
+                )
+            else:
+                # Clean up conversation history when API errors occur
+                self._cleanup_conversation_on_error()
 
             # Handle storage and observability
             self._finalize_conversation(user_input, response_text)
@@ -225,6 +230,41 @@ class ConversationHandler:
             self.observability_service.flush_traces()
         except Exception as e:
             logging.warning(f"Failed to update observability: {e}")
+
+    def _cleanup_conversation_on_error(self) -> None:
+        """Clean up conversation history when API errors occur to prevent corruption"""
+        try:
+            # Find the last assistant message with unmatched tool_use blocks
+            for i in range(len(self.llm.conversation_history) - 1, -1, -1):
+                message = self.llm.conversation_history[i]
+                if (
+                    message.get("role") == "assistant"
+                    and isinstance(message.get("content"), list)
+                    and any(block.get("type") == "tool_use" for block in message["content"])
+                ):
+                    # Check if there's a corresponding tool_result in the next message
+                    if (
+                        i + 1 < len(self.llm.conversation_history)
+                        and self.llm.conversation_history[i + 1].get("role") == "user"
+                    ):
+                        next_content = self.llm.conversation_history[i + 1].get("content", [])
+                        if isinstance(next_content, list) and any(
+                            block.get("type") == "tool_result" for block in next_content
+                        ):
+                            continue  # This tool_use has results, keep looking
+
+                    # Found unmatched tool_use - remove from this point
+                    logging.warning(
+                        f"Cleaning up conversation history from message {i} due to unmatched tool_use"
+                    )
+                    self.llm.conversation_history = self.llm.conversation_history[:i]
+                    break
+
+        except Exception as e:
+            logging.error(f"Error cleaning conversation history: {e}")
+            # Fallback: keep only the first message (user input)
+            if self.llm.conversation_history:
+                self.llm.conversation_history = self.llm.conversation_history[:1]
 
     def _create_error_response(self, user_input: str, error: str) -> str:
         """Create fallback response for critical errors"""
