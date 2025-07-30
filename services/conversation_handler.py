@@ -237,19 +237,26 @@ class ConversationHandler:
             # Find the last assistant message with unmatched tool_use blocks
             for i in range(len(self.llm.conversation_history) - 1, -1, -1):
                 message = self.llm.conversation_history[i]
-                if (message.get("role") == "assistant" and
-                    isinstance(message.get("content"), list) and
-                    any(block.get("type") == "tool_use" for block in message["content"])):
-
+                if (
+                    message.get("role") == "assistant"
+                    and isinstance(message.get("content"), list)
+                    and any(block.get("type") == "tool_use" for block in message["content"])
+                ):
                     # Check if there's a corresponding tool_result in the next message
-                    if (i + 1 < len(self.llm.conversation_history) and
-                        self.llm.conversation_history[i + 1].get("role") == "user"):
+                    if (
+                        i + 1 < len(self.llm.conversation_history)
+                        and self.llm.conversation_history[i + 1].get("role") == "user"
+                    ):
                         next_content = self.llm.conversation_history[i + 1].get("content", [])
-                        if isinstance(next_content, list) and any(block.get("type") == "tool_result" for block in next_content):
+                        if isinstance(next_content, list) and any(
+                            block.get("type") == "tool_result" for block in next_content
+                        ):
                             continue  # This tool_use has results, keep looking
 
                     # Found unmatched tool_use - remove from this point
-                    logging.warning(f"Cleaning up conversation history from message {i} due to unmatched tool_use")
+                    logging.warning(
+                        f"Cleaning up conversation history from message {i} due to unmatched tool_use"
+                    )
                     self.llm.conversation_history = self.llm.conversation_history[:i]
                     break
 
