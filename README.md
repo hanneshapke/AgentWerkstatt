@@ -34,6 +34,8 @@
 
 # AgentWerkstatt 🤖
 
+### Agents for Minimalists.
+
 A minimalistic agentic framework for building AI agents with tool calling capabilities.
 Why do we need another agentic framework? I felt that all other frameworks were too complex and had too many dependencies, I wanted to build a framework that was easy to understand and use, and that was also easy to extend. The main goal here isn't on production scenarios (yet), but on understanding and prototyping agentic systems. Therefore, the name "AgentWerkstatt" is a play on the term Agent and the German word "Werkstatt" (workshop).
 
