@@ -11,7 +11,7 @@ AgentWerkstatt follows a modular architecture with clear separation of concerns,
 ```
 AgentWerkstatt/
 ├── agent.py               # Main agent implementation and CLI
-├── agent_config.yaml      # Default configuration
+├── config.yaml      # Default configuration
 ├── llms/                  # LLM provider modules
 │   ├── base.py           # Base LLM abstraction
 │   ├── claude.py         # Claude implementation

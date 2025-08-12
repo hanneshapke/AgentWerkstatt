@@ -5,7 +5,7 @@ This roadmap outlines the planned features and improvements for AgentWerkstatt, 
 ## 🚀 v0.2.0 - Foundation Improvements
 
 ### Core Framework
-- [x] **Configuration Validation**: Schema validation for agent_config.yaml
+- [x] **Configuration Validation**: Schema validation for config.yaml
 - [x] **Memory Management**: Basic memory and context management using mem0.
 - [ ] **Self-Reflection**: Agent self-evaluation and improvement
 - [ ] **Planning & Reasoning**: Multi-step task planning

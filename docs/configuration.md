@@ -39,7 +39,7 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 ## Configuration File
 
-AgentWerkstatt uses YAML configuration files for non-sensitive settings. The default configuration file is `agent_config.yaml`.
+AgentWerkstatt uses YAML configuration files for non-sensitive settings. The default configuration file is `config.yaml`.
 
 ### Default Configuration
 
@@ -188,7 +188,7 @@ For detailed setup instructions, see [LANGFUSE_INTEGRATION.md](../third_party/LA
 from agentwerkstatt import Agent, AgentConfig
 
 # Load from YAML file
-config = AgentConfig.from_yaml("agent_config.yaml")
+config = AgentConfig.from_yaml("config.yaml")
 
 # Or create programmatically
 config = AgentConfig(

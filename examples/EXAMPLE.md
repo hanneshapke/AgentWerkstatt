@@ -28,7 +28,7 @@ LANGFUSE_HOST="http://localhost:3000"
 
 ### 2. Agent Configuration
 
-The `agent_config.yaml` file defines the agent's behavior:
+The `config.yaml` file defines the agent's behavior:
 
 ```yaml
 # LLM Model Configuration
@@ -72,7 +72,7 @@ from datetime import datetime
 from agentwerkstatt import Agent, AgentConfig
 
 # Load configuration from YAML file
-config = AgentConfig.from_yaml("agent_config.yaml")
+config = AgentConfig.from_yaml("config.yaml")
 
 # Create unique session ID for conversation tracking
 session_id = f"user-123-chat-{datetime.now().strftime('%Y%m%d-%H%M%S')}"

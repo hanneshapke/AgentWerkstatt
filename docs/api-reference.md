@@ -82,7 +82,7 @@ class AgentConfig:
   Load configuration from a YAML file.
 
   ```python
-  config = AgentConfig.from_yaml("agent_config.yaml")
+  config = AgentConfig.from_yaml("config.yaml")
   agent = Agent(config)
   ```
 
@@ -375,7 +375,7 @@ class AgentWerkstattError(Exception):
 from agentwerkstatt import Agent, AgentConfig
 
 # Load configuration
-config = AgentConfig.from_yaml("agent_config.yaml")
+config = AgentConfig.from_yaml("config.yaml")
 
 # Create agent
 agent = Agent(config)
