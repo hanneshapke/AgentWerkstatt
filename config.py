@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import yaml
 
@@ -13,7 +14,7 @@ class AgentConfig:
     model: str = ""
     tools_dir: str = ""
     verbose: bool = False
-    agent_objective: str = ""
+    agent_personas: str = ""
     langfuse_enabled: bool = False
     langfuse_project_name: str = "agentwerkstatt"
     memory_enabled: bool = False
@@ -22,9 +23,25 @@ class AgentConfig:
 
     @classmethod
     def from_yaml(cls, file_path: str) -> "AgentConfig":
-        """Load configuration from YAML file"""
+        """Load configuration from YAML file and agent description from specified personas file"""
         with open(file_path) as f:
             data = yaml.safe_load(f)
+
+
+        # Load agent description from agent_personas file
+        agent_personas_file = data.get("agent_personas", "agent.md")
+        if agent_personas_file:
+            config_dir = Path(file_path).parent
+            personas_path = config_dir / agent_personas_file
+
+            if personas_path.exists():
+                with open(personas_path, "r", encoding="utf-8") as f:
+                    agent_description = f.read().strip()
+                data["agent_objective"] = agent_description
+            else:
+                data["agent_objective"] = ""
+        else:
+            raise ValueError(f"Agent personas file '{agent_personas_file}' is required but not found")
 
         # Handle nested langfuse config - flatten it into the main config
         langfuse_data = data.pop("langfuse", {})
@@ -45,7 +62,7 @@ class AgentConfig:
 class ConfigValidator:
     """Validates agent configuration"""
 
-    def validate(self, config: AgentConfig) -> list[str]:
+    def validate(self, config: AgentConfig, config_file_path: str = None) -> list[str]:
         """Validate configuration and return list of error messages"""
         errors = []
 
@@ -58,8 +75,19 @@ class ConfigValidator:
         elif not os.path.exists(config.tools_dir):
             errors.append(f"Tools directory does not exist: {config.tools_dir}")
 
+        # Validate agent description from agent_personas file
         if not config.agent_objective:
-            errors.append("Agent objective is required")
+            if config_file_path and config.agent_personas:
+                config_dir = Path(config_file_path).parent
+                personas_path = config_dir / config.agent_personas
+                if not personas_path.exists():
+                    errors.append(f"Agent personas file '{config.agent_personas}' is required but not found")
+                else:
+                    errors.append(f"Agent personas file '{config.agent_personas}' exists but is empty")
+            elif config.agent_personas:
+                errors.append(f"Agent personas file '{config.agent_personas}' is specified but agent objective is missing")
+            else:
+                errors.append("Agent personas file is required in configuration")
 
         # Langfuse validation
         if config.langfuse_enabled:
@@ -108,7 +136,7 @@ class ConfigManager:
         except Exception as e:
             raise ValueError(f"Failed to load configuration from {config_path}: {e}") from e
 
-        errors = self.validator.validate(config)
+        errors = self.validator.validate(config, config_path)
         if errors:
             error_msg = "Configuration validation failed:\n" + "\n".join(
                 f"- {error}" for error in errors

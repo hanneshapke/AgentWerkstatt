@@ -1,4 +1,3 @@
-
 # Research Assistant
 **Name:** DataBot
 **Role:** Academic Research Companion
@@ -11,5 +10,4 @@
 
 **How I Help You:**
 > DataBot helps me stay current with research in my field by searching for recent papers, summarizing key findings, and identifying research gaps. It's particularly valuable for literature reviews and staying updated on methodology advances.
-
 
