@@ -8,7 +8,6 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
-
 from agentwerkstatt.config import AgentConfig, ConfigManager
 from agentwerkstatt.llms.base import BaseLLM
 
@@ -54,15 +53,12 @@ def test_config_content():
         "tools_dir": "./tools",
         "verbose": False,
         "persona": "test_persona.md",
-        "langfuse": {
-            "enabled": False,
-            "project_name": "test-project"
-        },
+        "langfuse": {"enabled": False, "project_name": "test-project"},
         "memory": {
             "enabled": False,
             "model_name": "gpt-4o-mini",
-            "server_url": "http://localhost:8000"
-        }
+            "server_url": "http://localhost:8000",
+        },
     }
 
 
@@ -84,7 +80,7 @@ def temp_config_files(test_persona_content, test_config_content):
         yield {
             "config_path": str(config_file),
             "persona_path": str(persona_file),
-            "temp_dir": str(temp_path)
+            "temp_dir": str(temp_path),
         }
 
 
@@ -174,11 +170,7 @@ def test_system_prompt_generation_with_persona(temp_config_files, test_persona_c
     mock_tools = [websearch_tool, calculator_tool]
 
     # Create LLM with loaded persona
-    llm = TestPersonaBaseLLM(
-        model_name=config.model,
-        tools=mock_tools,
-        persona=config.persona
-    )
+    llm = TestPersonaBaseLLM(model_name=config.model, tools=mock_tools, persona=config.persona)
 
     # Get the generated system prompt
     system_prompt = llm._format_system_prompt()
@@ -201,11 +193,7 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     config = AgentConfig.from_yaml(temp_config_files["config_path"])
 
     # Create LLM with loaded persona
-    llm = TestPersonaBaseLLM(
-        model_name=config.model,
-        tools=[],
-        persona=config.persona
-    )
+    llm = TestPersonaBaseLLM(model_name=config.model, tools=[], persona=config.persona)
 
     # Test custom template
     custom_template = """PERSONA:
@@ -239,7 +227,7 @@ def test_fallback_to_default_persona_file():
         config_content = {
             "model": "claude-3-sonnet-20240229",
             "tools_dir": "./tools",
-            "verbose": False
+            "verbose": False,
         }
         config_file = temp_path / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:

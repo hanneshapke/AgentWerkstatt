@@ -24,7 +24,7 @@ class AgentConfig:
     @classmethod
     def from_persona(cls, persona_file: str) -> "AgentConfig":
         """Load configuration from persona file"""
-        with open(persona_file, "r", encoding="utf-8") as f:
+        with open(persona_file, encoding="utf-8") as f:
             return cls(persona=f.read().strip())
 
     @classmethod
