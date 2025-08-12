@@ -32,6 +32,15 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://www.bonfire.com/agentwerkstatt">
+    <img src="https://img.shields.io/badge/Buy%20Swag!-red?logo=bonfire" alt="bonfire-badge">
+  </a>
+  <a href="https://www.buymeacoffee.com/hanneshapke" target="_blank">
+    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-yellow?logo=buymeacoffee" alt="buymeacoffee-badge">
+  </a>
+</p>
+
 # AgentWerkstatt 🤖
 
 ### Agents for Minimalists.
