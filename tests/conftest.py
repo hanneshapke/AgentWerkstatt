@@ -46,5 +46,5 @@ def sample_agent_config():
         "model": "claude-3-sonnet-20240229",
         "tools_dir": "tools",
         "verbose": False,
-        "agent_objective": "Test agent for unit testing",
+        "persona": "Test agent for unit testing",
     }

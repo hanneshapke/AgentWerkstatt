@@ -65,7 +65,7 @@ class Agent:
     def _create_llm(self) -> BaseLLM:
         """Create LLM based on configuration"""
         return ClaudeLLM(
-            agent_objective=self.config.agent_objective,
+            persona=self.config.persona,
             model_name=self.config.model,
             tools=self.tools,
             observability_service=self.observability_service,

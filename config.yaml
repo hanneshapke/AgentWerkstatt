@@ -21,4 +21,4 @@ memory:
   model_name: "gpt-4o-mini"  # Model for memory processing
   server_url: "http://localhost:8000"  # mem0 server endpoint
 
-agent_personas: agents.md
+persona: agents.md

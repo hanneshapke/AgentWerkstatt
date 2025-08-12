@@ -14,7 +14,7 @@ class AgentConfig:
     model: str = ""
     tools_dir: str = ""
     verbose: bool = False
-    agent_personas: str = ""
+    persona: str = ""
     langfuse_enabled: bool = False
     langfuse_project_name: str = "agentwerkstatt"
     memory_enabled: bool = False
@@ -22,26 +22,35 @@ class AgentConfig:
     memory_server_url: str = "http://localhost:8000"
 
     @classmethod
+    def from_persona(cls, persona_file: str) -> "AgentConfig":
+        """Load configuration from persona file"""
+        with open(persona_file, "r", encoding="utf-8") as f:
+            return cls(persona=f.read().strip())
+
+    @classmethod
     def from_yaml(cls, file_path: str) -> "AgentConfig":
-        """Load configuration from YAML file and agent description from specified personas file"""
+        """Load configuration from YAML file"""
         with open(file_path) as f:
             data = yaml.safe_load(f)
 
-
-        # Load agent description from agent_personas file
-        agent_personas_file = data.get("agent_personas", "agent.md")
-        if agent_personas_file:
-            config_dir = Path(file_path).parent
-            personas_path = config_dir / agent_personas_file
-
-            if personas_path.exists():
-                with open(personas_path, "r", encoding="utf-8") as f:
-                    agent_description = f.read().strip()
-                data["agent_objective"] = agent_description
-            else:
-                data["agent_objective"] = ""
+        # Load persona content from file if a filename is specified
+        if data.get("persona"):
+            # If persona is specified as a filename, load its content
+            persona_file = data["persona"]
+            if not os.path.isabs(persona_file):
+                # If relative path, resolve relative to config file
+                config_dir = Path(file_path).parent
+                persona_file = config_dir / persona_file
+            data["persona"] = cls.from_persona(str(persona_file)).persona
         else:
-            raise ValueError(f"Agent personas file '{agent_personas_file}' is required but not found")
+            # Fall back to default persona file relative to config file
+            config_dir = Path(file_path).parent
+            default_persona_file = config_dir / "agent.md"
+            if default_persona_file.exists():
+                data["persona"] = cls.from_persona(str(default_persona_file)).persona
+            else:
+                # If no agent.md in config dir, try agents.md in project root
+                data["persona"] = cls.from_persona("agents.md").persona
 
         # Handle nested langfuse config - flatten it into the main config
         langfuse_data = data.pop("langfuse", {})
@@ -75,19 +84,9 @@ class ConfigValidator:
         elif not os.path.exists(config.tools_dir):
             errors.append(f"Tools directory does not exist: {config.tools_dir}")
 
-        # Validate agent description from agent_personas file
-        if not config.agent_objective:
-            if config_file_path and config.agent_personas:
-                config_dir = Path(config_file_path).parent
-                personas_path = config_dir / config.agent_personas
-                if not personas_path.exists():
-                    errors.append(f"Agent personas file '{config.agent_personas}' is required but not found")
-                else:
-                    errors.append(f"Agent personas file '{config.agent_personas}' exists but is empty")
-            elif config.agent_personas:
-                errors.append(f"Agent personas file '{config.agent_personas}' is specified but agent objective is missing")
-            else:
-                errors.append("Agent personas file is required in configuration")
+        # Validate persona content
+        if not config.persona:
+            errors.append("Agent persona content is required but is empty or missing")
 
         # Langfuse validation
         if config.langfuse_enabled:
