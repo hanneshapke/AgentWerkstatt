@@ -49,10 +49,10 @@ The `BaseLLM` class provides a common interface for all LLM providers:
 
 ```python
 class BaseLLM:
-    def __init__(self, model_name: str, tools: list, agent_objective: str = ""):
+    def __init__(self, model_name: str, tools: list, persona: str = ""):
         self.model_name = model_name
         self.tools = tools
-        self.agent_objective = agent_objective
+        self.persona = persona
         self.conversation_history = []
 
     def make_api_request(self, messages: list[dict]) -> dict:

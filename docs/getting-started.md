@@ -131,7 +131,7 @@ config = AgentConfig(
     model="claude-sonnet-4-20250514",
     tools_dir="./tools",
     verbose=True,
-    agent_objective="You are a helpful assistant with web search capabilities."
+    persona="You are a helpful assistant with web search capabilities."
 )
 agent = Agent(config)
 

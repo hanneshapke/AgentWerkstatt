@@ -65,7 +65,7 @@ langfuse:
   project_name: "agentwerkstatt"
 
 # Agent Objective/System Prompt
-agent_objective: |
+persona: |
   You are a helpful assistant with web search capabilities.
   You can search the web for current information and provide accurate, helpful responses.
   Always be conversational and helpful in your responses.
@@ -76,7 +76,7 @@ agent_objective: |
 #### LLM Configuration
 
 - `model`: The LLM model to use (currently supports Claude models)
-- `agent_objective`: System prompt/objective for the agent
+- `persona`: System prompt/persona for the agent
 
 #### Tools Configuration
 
@@ -195,7 +195,7 @@ config = AgentConfig(
     model="claude-sonnet-4-20250514",
     tools_dir="./tools",
     verbose=True,
-    agent_objective="You are a helpful assistant with web search capabilities.",
+    persona="You are a helpful assistant with web search capabilities.",
     memory_enabled=True,
     langfuse_enabled=True
 )
@@ -228,7 +228,7 @@ memory:
 langfuse:
   enabled: false
 
-agent_objective: |
+persona: |
   You are a specialized research assistant.
   Focus on providing detailed, accurate information with proper citations.
 ```

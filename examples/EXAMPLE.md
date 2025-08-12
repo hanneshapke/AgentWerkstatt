@@ -52,7 +52,7 @@ memory:
   server_url: "http://localhost:8000"
 
 # Agent Objective/System Prompt
-agent_objective: |
+persona: |
   You are a helpful assistant that helps finding great travel deals.
   When you have successfully completed assembling a travel package, end your response with '[TASK_COMPLETE]' to indicate that the task is complete.
 ```
@@ -178,7 +178,7 @@ This example showcases several important AgentWerkstatt features:
 ## Next Steps
 
 To customize this example:
-- Modify the `agent_objective` in the config file for different domains
+- Modify the `persona` in the config file for different domains
 - Adjust the tools directory to include custom tools
 - Change the termination logic or markers
 - Integrate additional services like memory or Langfuse tracing
