@@ -4,9 +4,7 @@ from unittest.mock import Mock
 
 from agentwerkstatt.agent import Agent
 from agentwerkstatt.config import AgentConfig
-from agentwerkstatt.interfaces import Message
 from agentwerkstatt.llms.mock import MockLLM
-from agentwerkstatt.services.conversation_handler import ConversationHandler
 from agentwerkstatt.services.tool_executor import ToolExecutor
 from agentwerkstatt.tools.base import BaseTool
 from agentwerkstatt.tools.discovery import ToolRegistry
@@ -23,11 +21,7 @@ class StaticTool(BaseTool):
         return {
             "name": self.get_name(),
             "description": self.description,
-            "input_schema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            "input_schema": {"type": "object", "properties": {}, "required": []},
         }
 
     def execute(self, **kwargs) -> dict[str, Any]:
@@ -55,7 +49,7 @@ class TestAgentEndToEnd(unittest.TestCase):
             model="mock-model",
             tools_dir="",  # Empty to prevent tool discovery
             verbose=False,
-            persona="Test agent"
+            persona="Test agent",
         )
 
         # Agent with injected dependencies
@@ -64,7 +58,7 @@ class TestAgentEndToEnd(unittest.TestCase):
             llm=mock_llm,
             memory_service=mock_memory_service,
             observability_service=mock_observability,
-            tool_executor=tool_executor
+            tool_executor=tool_executor,
         )
 
         # Override the Agent's discovered tools with just our test tool

@@ -2,8 +2,9 @@
 
 from typing import Any
 
-from .base import BaseLLM
 from agentwerkstatt.interfaces import Message
+
+from .base import BaseLLM
 
 
 class MockLLM(BaseLLM):
@@ -29,8 +30,8 @@ class MockLLM(BaseLLM):
         """Mock API request that returns a predictable response"""
         # Check if this is a follow-up call after tool execution
         has_tool_results = any(
-            isinstance(msg.get("content"), list) and
-            any(block.get("type") == "tool_result" for block in msg["content"])
+            isinstance(msg.get("content"), list)
+            and any(block.get("type") == "tool_result" for block in msg["content"])
             for msg in messages
         )
 
@@ -47,7 +48,9 @@ class MockLLM(BaseLLM):
                                 break
 
             return {
-                "content": [{"type": "text", "text": f"Based on the tool result: {tool_result_content}"}],
+                "content": [
+                    {"type": "text", "text": f"Based on the tool result: {tool_result_content}"}
+                ],
                 "usage": {"input_tokens": 10, "output_tokens": 5},
             }
 
@@ -60,7 +63,9 @@ class MockLLM(BaseLLM):
                 "usage": {"input_tokens": 10, "output_tokens": 5},
             }
         # Look for static_tool specifically for testing
-        elif any(tool.get_name() == "static_tool" for tool in self.tools if hasattr(tool, 'get_name')):
+        elif any(
+            tool.get_name() == "static_tool" for tool in self.tools if hasattr(tool, "get_name")
+        ):
             return {
                 "content": [
                     {"type": "text", "text": "I'll use the static tool."},
@@ -68,8 +73,8 @@ class MockLLM(BaseLLM):
                         "type": "tool_use",
                         "id": "mock_tool_id_123",
                         "name": "static_tool",
-                        "input": {}
-                    }
+                        "input": {},
+                    },
                 ],
                 "usage": {"input_tokens": 10, "output_tokens": 5},
             }
@@ -83,8 +88,8 @@ class MockLLM(BaseLLM):
                         "type": "tool_use",
                         "id": "mock_tool_id_123",
                         "name": tool.get_name(),
-                        "input": {}
-                    }
+                        "input": {},
+                    },
                 ],
                 "usage": {"input_tokens": 10, "output_tokens": 5},
             }
