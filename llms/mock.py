@@ -14,7 +14,7 @@ class MockLLM(BaseLLM):
         self,
         model_name: str = "mock-model",
         agent_objective: str = "Test agent",
-        tools: list[dict] = None,
+        tools: list[Any] = None,
         responses: list[Message] = None,
     ):
         """Initialize mock LLM without calling parent __init__ to avoid API key validation"""

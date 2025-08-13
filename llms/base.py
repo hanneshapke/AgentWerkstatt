@@ -12,7 +12,7 @@ class BaseLLM:
     def __init__(
         self,
         model_name: str,
-        tools: dict[str, Any],
+        tools: list[Any],
         persona: str = "",
         observability_service=None,
     ):
