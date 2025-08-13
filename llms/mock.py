@@ -3,7 +3,7 @@
 from typing import Any
 
 from .base import BaseLLM
-from ..interfaces import Message
+from agentwerkstatt.interfaces import Message
 
 
 class MockLLM(BaseLLM):
