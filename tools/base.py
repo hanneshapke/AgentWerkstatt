@@ -42,3 +42,17 @@ class BaseTool(ABC):
     def execute(self, **kwargs) -> dict[str, Any]:
         """Execute the tool with given parameters"""
         pass
+
+
+class Tool:
+    """Simple tool class for testing and basic tool implementations"""
+
+    def __init__(self, name: str, description: str, schema: dict):
+        """Initialize tool with name, description and schema"""
+        self.name = name
+        self.description = description
+        self.schema = schema
+
+    def __call__(self, **kwargs):
+        """Call the tool - to be overridden by subclasses"""
+        raise NotImplementedError("Subclasses must implement __call__ method")
