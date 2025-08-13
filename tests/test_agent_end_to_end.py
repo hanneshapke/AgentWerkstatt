@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+
 from agentwerkstatt.agent import Agent
 from agentwerkstatt.config import AgentConfig
 from agentwerkstatt.interfaces import Message
@@ -12,9 +12,7 @@ from agentwerkstatt.tools.base import Tool
 class StaticTool(Tool):
     def __init__(self):
         super().__init__(
-            name="static_tool",
-            description="A simple tool that returns a fixed value.",
-            schema={}
+            name="static_tool", description="A simple tool that returns a fixed value.", schema={}
         )
 
     def __call__(self, **kwargs):
@@ -25,22 +23,18 @@ class TestAgentEndToEnd(unittest.TestCase):
     def test_agent_with_static_tool(self):
         # 1. Setup
         # Mock LLM
-        mock_llm = MockLLM(responses=[
-            Message(
-                role="assistant",
-                content='[{"tool_name": "static_tool", "tool_code": ""}]'
-            )
-        ])
+        mock_llm = MockLLM(
+            responses=[
+                Message(role="assistant", content='[{"tool_name": "static_tool", "tool_code": ""}]')
+            ]
+        )
 
         # Tools
         tools = [StaticTool()]
         tool_executor = ToolExecutor(tools=tools)
 
         # Conversation Handler
-        conversation_handler = ConversationHandler(
-            llm=mock_llm,
-            tool_executor=tool_executor
-        )
+        conversation_handler = ConversationHandler(llm=mock_llm, tool_executor=tool_executor)
 
         # Agent Configuration
         agent_config = AgentConfig(
@@ -48,7 +42,7 @@ class TestAgentEndToEnd(unittest.TestCase):
             conversation_handler=conversation_handler,
             tools=tools,
             memory=None,
-            langfuse_service=None
+            langfuse_service=None,
         )
 
         # Agent
