@@ -7,6 +7,7 @@ memory, and observability features.
 
 try:
     from importlib.metadata import version
+
     __version__ = version("agentwerkstatt")
 except Exception:
     # Fallback for development/testing
@@ -16,6 +17,7 @@ except Exception:
 try:
     from config import AgentConfig
     from main import Agent
+
     __all__ = [
         "Agent",
         "AgentConfig",
