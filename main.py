@@ -1,11 +1,5 @@
 from absl import logging
 
-from .interfaces import (
-    ConversationHandlerProtocol,
-    MemoryServiceProtocol,
-    ObservabilityServiceProtocol,
-    ToolExecutorProtocol,
-)
 from llms.base import BaseLLM
 from llms.claude import ClaudeLLM
 from services.conversation_handler import ConversationHandler
@@ -15,6 +9,12 @@ from services.tool_executor import ToolExecutor
 from tools.discovery import ToolRegistry
 
 from .config import AgentConfig
+from .interfaces import (
+    ConversationHandlerProtocol,
+    MemoryServiceProtocol,
+    ObservabilityServiceProtocol,
+    ToolExecutorProtocol,
+)
 
 
 class Agent:
