@@ -8,8 +8,8 @@ from services.memory_service import MemoryService, NoOpMemoryService
 from services.tool_executor import ToolExecutor
 from tools.discovery import ToolRegistry
 
-from .config import AgentConfig
-from .interfaces import (
+from config import AgentConfig
+from interfaces import (
     ConversationHandlerProtocol,
     MemoryServiceProtocol,
     ObservabilityServiceProtocol,

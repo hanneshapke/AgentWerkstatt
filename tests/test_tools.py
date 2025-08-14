@@ -7,9 +7,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from ..services.tool_executor import ToolExecutor
-from ..tools.base import BaseTool
-from ..tools.discovery import ToolRegistry
+from services.tool_executor import ToolExecutor
+from tools.base import BaseTool
+from tools.discovery import ToolRegistry
 
 
 class TestToolRegistry:
