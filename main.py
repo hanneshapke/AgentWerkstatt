@@ -1,6 +1,5 @@
 from absl import logging
 
-from config import AgentConfig
 from interfaces import (
     ConversationHandlerProtocol,
     MemoryServiceProtocol,
@@ -14,6 +13,8 @@ from services.langfuse_service import LangfuseService, NoOpObservabilityService
 from services.memory_service import MemoryService, NoOpMemoryService
 from services.tool_executor import ToolExecutor
 from tools.discovery import ToolRegistry
+
+from .config import AgentConfig
 
 
 class Agent:
