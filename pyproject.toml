@@ -63,19 +63,10 @@ Repository = "https://github.com/hanneshapke/agentwerkstatt.git"
 "Discussions" = "https://github.com/hanneshapke/agentwerkstatt/discussions"
 "Contributing" = "https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md"
 
-[tool.setuptools]
-packages = [
-    "agentwerkstatt",
-    "agentwerkstatt.llms",
-    "agentwerkstatt.services",
-    "agentwerkstatt.tools"
-]
-
-[tool.setuptools.package-dir]
-"agentwerkstatt" = "."
-"agentwerkstatt.llms" = "llms"
-"agentwerkstatt.services" = "services"
-"agentwerkstatt.tools" = "tools"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+exclude = ["tests*"]
 
 [tool.setuptools.package-data]
 agentwerkstatt = ["**/config.yaml", "**/docker-compose.yaml", "**/Dockerfile*", "**/*.md"]

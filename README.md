@@ -131,10 +131,10 @@ Run the interactive CLI:
 
 ```bash
 # Using default configuration (config.yaml)
-python agent.py
+agentwerkstatt
 
 # Using a custom configuration file
-python agent.py --config /path/to/your/config.yaml
+agentwerkstatt --config /path/to/your/config.yaml
 ```
 
 Example conversation:
@@ -197,13 +197,13 @@ The CLI supports the following command line arguments:
 Examples:
 ```bash
 # Use default configuration
-python agent.py
+agentwerkstatt
 
 # Use custom configuration file
-python agent.py --config my_custom_config.yaml
+agentwerkstatt --config my_custom_config.yaml
 
 # Show help
-python agent.py --help
+agentwerkstatt --help
 ```
 
 ## Documentation

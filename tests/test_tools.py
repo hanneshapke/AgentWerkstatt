@@ -3,32 +3,45 @@ Unit tests for the tools module
 """
 
 import os
-import sys
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Add the project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from agentwerkstatt.services.tool_executor import ToolExecutor
-from agentwerkstatt.tools.base import BaseTool
-from agentwerkstatt.tools.discovery import ToolRegistry
+from ..services.tool_executor import ToolExecutor
+from ..tools.base import BaseTool
+from ..tools.discovery import ToolRegistry
 
 
 class TestToolRegistry:
     """Test cases for the ToolRegistry class."""
 
+    def setUp(self):
+        # Create a dummy tools directory
+        self.test_dir = os.path.dirname(__file__)
+        self.tools_dir = os.path.join(self.test_dir, "temp_tools")
+        os.makedirs(self.tools_dir, exist_ok=True)
+
+    def tearDown(self):
+        # Clean up the dummy tools directory
+        if os.path.exists(self.tools_dir):
+            for file in os.listdir(self.tools_dir):
+                os.remove(os.path.join(self.tools_dir, file))
+            os.rmdir(self.tools_dir)
+
     def test_tool_registry_creation(self):
         """Test that a ToolRegistry can be created."""
-        registry = ToolRegistry()
+        self.setUp()
+        registry = ToolRegistry(tools_dir=self.tools_dir)
         assert registry is not None
+        self.tearDown()
 
     def test_tool_registry_has_expected_methods(self):
         """Test that ToolRegistry has expected methods."""
-        registry = ToolRegistry()
+        self.setUp()
+        registry = ToolRegistry(tools_dir=self.tools_dir)
         # Adjust these based on your actual ToolRegistry implementation
         assert hasattr(registry, "__init__")
+        self.tearDown()
 
 
 class TestBaseTool:

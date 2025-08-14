@@ -1,58 +1,29 @@
-#!/usr/bin/env python3
-"""
-Tools module for AgentWerkstatt
-Contains base tool implementations for the agent
-"""
-
 from abc import ABC, abstractmethod
 from typing import Any
 
-
 class BaseTool(ABC):
-    """Abstract base class for all tools"""
-
-    def __init__(self):
-        self.name = self._get_name()
-        self.description = self._get_description()
+    """Abstract base class for all tools available to the agent."""
 
     @abstractmethod
-    def _get_name(self) -> str:
-        """Return the tool name"""
-        pass
-
     def get_name(self) -> str:
-        """Return the tool name"""
-        return self.name.lower().replace(" ", "_").replace("-", "_")
-
-    def get_function_name(self) -> str:
-        """Return the dynamic function name"""
-        return self.name.lower().replace(" ", "_").replace("-", "_") + "_tool"
+        """Returns the programmatic name of the tool (e.g., 'web_search')."""
+        raise NotImplementedError
 
     @abstractmethod
-    def _get_description(self) -> str:
-        """Return the tool description"""
-        pass
+    def get_description(self) -> str:
+        """Returns a human-readable description of what the tool does."""
+        raise NotImplementedError
 
     @abstractmethod
     def get_schema(self) -> dict[str, Any]:
-        """Return the tool schema for Claude"""
-        pass
+        """
+        Returns the JSON schema for the tool's inputs, as required by the LLM.
+        """
+        raise NotImplementedError
 
     @abstractmethod
-    def execute(self, **kwargs) -> dict[str, Any]:
-        """Execute the tool with given parameters"""
-        pass
-
-
-class Tool:
-    """Simple tool class for testing and basic tool implementations"""
-
-    def __init__(self, name: str, description: str, schema: dict):
-        """Initialize tool with name, description and schema"""
-        self.name = name
-        self.description = description
-        self.schema = schema
-
-    def __call__(self, **kwargs):
-        """Call the tool - to be overridden by subclasses"""
-        raise NotImplementedError("Subclasses must implement __call__ method")
+    def execute(self, **kwargs: Any) -> dict[str, Any]:
+        """
+        Executes the tool with the given keyword arguments and returns a result dictionary.
+        """
+        raise NotImplementedError

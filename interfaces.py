@@ -1,126 +1,98 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from .config import AgentConfig
-
-
-@dataclass
 class Message:
-    """Represents a message in a conversation"""
-
-    role: str
-    content: str
-
+    """Represents a message in a conversation."""
+    def __init__(self, role: str, content: str):
+        self.role = role
+        self.content = content
 
 class MemoryServiceProtocol(ABC):
-    """Protocol for memory service implementations"""
+    """Defines the interface for a memory service."""
 
     @property
     @abstractmethod
     def is_enabled(self) -> bool:
-        """Check if the memory service is enabled"""
-        pass
+        """Returns True if the memory service is active, False otherwise."""
+        raise NotImplementedError
 
     @abstractmethod
     def retrieve_memories(self, user_input: str, user_id: str) -> str:
-        """Retrieve relevant memories for the user input"""
-        pass
+        """Retrieves relevant memories based on the user's input."""
+        raise NotImplementedError
 
     @abstractmethod
-    def store_conversation(self, user_input: str, assistant_response: str, user_id: str) -> None:
-        """Store a conversation in memory"""
-        pass
-
+    def store_conversation(self, user_input: str, assistant_response: str, user_id: str):
+        """Stores a completed conversation turn in memory."""
+        raise NotImplementedError
 
 class ObservabilityServiceProtocol(ABC):
-    """Protocol for observability service implementations"""
+    """Defines the interface for an observability and tracing service."""
 
     @property
     @abstractmethod
     def is_enabled(self) -> bool:
-        """Check if the observability service is enabled"""
-        pass
+        """Returns True if the observability service is active, False otherwise."""
+        raise NotImplementedError
 
     @abstractmethod
-    def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
-        """Start observing a request"""
-        pass
+    def observe_request(self, input_data: str, metadata: dict[str, Any]):
+        """Starts observing a top-level request."""
+        raise NotImplementedError
 
     @abstractmethod
     def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any:
-        """Start observing tool execution, return observation object"""
-        pass
+        """Starts observing a tool execution and returns a span/trace object."""
+        raise NotImplementedError
 
     @abstractmethod
-    def update_tool_observation(self, tool_observation: Any, output: Any) -> None:
-        """Update tool observation with output"""
-        pass
+    def update_tool_observation(self, tool_observation: Any, output: Any):
+        """Updates the tool observation with the execution's output."""
+        raise NotImplementedError
 
     @abstractmethod
-    def observe_llm_call(
-        self, model_name: str, messages: list[dict], metadata: dict[str, Any] = None
-    ) -> Any:
-        """Start observing an LLM call, return observation object"""
-        pass
+    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None) -> Any:
+        """Starts observing an LLM call and returns a span/generation object."""
+        raise NotImplementedError
 
     @abstractmethod
-    def update_llm_observation(
-        self, llm_generation: Any, output: Any, usage: dict[str, Any] = None
-    ) -> None:
-        """Update LLM observation with output and usage"""
-        pass
+    def update_llm_observation(self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None):
+        """Updates the LLM observation with the model's output and token usage."""
+        raise NotImplementedError
 
     @abstractmethod
-    def update_observation(self, output: Any) -> None:
-        """Update current observation with output"""
-        pass
+    def update_observation(self, output: Any):
+        """Updates the current top-level observation with the final output."""
+        raise NotImplementedError
 
     @abstractmethod
-    def flush_traces(self) -> None:
-        """Flush any pending traces"""
-        pass
-
-    @abstractmethod
-    def get_observe_decorator(self, name: str):
-        """Get observe decorator for function decoration"""
-        pass
-
+    def flush_traces(self):
+        """Ensures all pending traces are sent to the observability backend."""
+        raise NotImplementedError
 
 class ToolExecutorProtocol(ABC):
-    """Protocol for tool execution implementations"""
+    """Defines the interface for a tool executor."""
 
     @abstractmethod
-    def execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
-        """Execute a tool with given input"""
-        pass
-
+    def execute_tool_calls(self, assistant_message_content: list) -> tuple[list[dict], list[str]]:
+        """Parses a message, executes tool calls, and returns results."""
+        raise NotImplementedError
 
 class ConversationHandlerProtocol(ABC):
-    """Protocol for conversation handling implementations"""
+    """Defines the interface for a conversation handler."""
 
     @abstractmethod
     def process_message(self, user_input: str, enhanced_input: str) -> str:
-        """Process a user message and return response"""
-        pass
+        """Processes a user's message and returns the agent's response."""
+        raise NotImplementedError
 
     @abstractmethod
-    def clear_history(self) -> None:
-        """Clear conversation history"""
-        pass
+    def clear_history(self):
+        """Clears the current conversation history."""
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def conversation_length(self) -> int:
-        """Get current conversation length"""
-        pass
-
-
-class ConfigValidatorProtocol(ABC):
-    """Protocol for configuration validation"""
-
-    @abstractmethod
-    def validate(self, config: "AgentConfig") -> list[str]:
-        """Validate configuration and return list of errors"""
-        pass
+        """Returns the number of messages in the history."""
+        raise NotImplementedError

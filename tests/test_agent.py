@@ -6,9 +6,9 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
-from agentwerkstatt import Agent, AgentConfig
-from agentwerkstatt.llms import MockLLM
-from agentwerkstatt.services.tool_executor import ToolExecutor
+from .. import Agent, AgentConfig
+from ..llms.mock import MockLLM
+from ..services.tool_executor import ToolExecutor
 
 
 class MockMemoryService:
@@ -279,9 +279,20 @@ def test_tool_execution_integration():
     # Create tool executor
     tool_executor = ToolExecutor(mock_tool_registry, observability_service)
 
-    result = tool_executor.execute_tool("test_tool", {"param": "value"})
+    # Simulate an assistant message with a tool call
+    assistant_message = [
+        {
+            "type": "tool_use",
+            "id": "tool_123",
+            "name": "test_tool",
+            "input": {"param": "value"},
+        }
+    ]
 
-    assert result == {"result": "success"}
+    results, _ = tool_executor.execute_tool_calls(assistant_message)
+    result = results[0] if results else {}
+
+    assert "success" in result.get("content", "")
     # Verify tool execution was observed
     assert len(observability_service.tool_executions) == 1
     tool_execution = observability_service.tool_executions[0]

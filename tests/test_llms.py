@@ -7,10 +7,9 @@ import sys
 
 import pytest
 
-# Add the project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agentwerkstatt.llms.base import BaseLLM
+
+from ..llms.base import BaseLLM
 
 
 class TestBaseLLM:
@@ -33,14 +32,14 @@ class TestClaudeLLM:
 
     def test_claude_llm_can_be_imported(self):
         """Test that Claude LLM can be imported."""
-        from llms.claude import ClaudeLLM
+        from ..llms.claude import ClaudeLLM
 
         assert ClaudeLLM is not None
 
     @pytest.mark.integration
     def test_claude_llm_creation_without_api_key(self):
         """Test Claude LLM creation behavior without API key."""
-        from llms.claude import ClaudeLLM
+        from ..llms.claude import ClaudeLLM
 
         # This might raise an exception depending on implementation
         # Adjust based on your actual Claude LLM implementation
@@ -58,8 +57,7 @@ class TestLLMsIntegration:
     @pytest.mark.integration
     def test_llms_modules_can_be_imported(self):
         """Test that all LLMs modules can be imported successfully."""
-        import llms.base
-        import llms.claude
+        from .. import llms
 
         assert hasattr(llms.base, "BaseLLM")
         assert hasattr(llms.claude, "ClaudeLLM")

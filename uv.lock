@@ -18,7 +18,7 @@ wheels = [
 
 [[package]]
 name = "agentwerkstatt"
-version = "0.1.15.post4"
+version = "0.1.15.post5"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },

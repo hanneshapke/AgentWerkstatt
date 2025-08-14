@@ -2,26 +2,27 @@ import os
 import unittest
 from typing import Any
 from unittest.mock import Mock
+import yaml
 
-from agentwerkstatt.agent import Agent
-from agentwerkstatt.config import AgentConfig
-from agentwerkstatt.llms.mock import MockLLM
-from agentwerkstatt.services.tool_executor import ToolExecutor
-from agentwerkstatt.tools.base import BaseTool
-from agentwerkstatt.tools.discovery import ToolRegistry
+from ..main import Agent
+from ..config import AgentConfig
+from ..llms.mock import MockLLM
+from ..services.tool_executor import ToolExecutor
+from ..tools.base import BaseTool
+from ..tools.discovery import ToolRegistry
 
 
 class StaticTool(BaseTool):
-    def _get_name(self) -> str:
+    def get_name(self) -> str:
         return "static_tool"
 
-    def _get_description(self) -> str:
+    def get_description(self) -> str:
         return "A simple tool that returns a fixed value."
 
     def get_schema(self) -> dict[str, Any]:
         return {
             "name": self.get_name(),
-            "description": self.description,
+            "description": self.get_description(),
             "input_schema": {"type": "object", "properties": {}, "required": []},
         }
 
@@ -30,6 +31,19 @@ class StaticTool(BaseTool):
 
 
 class TestAgentEndToEnd(unittest.TestCase):
+    def setUp(self):
+        # Create a dummy tools directory
+        self.test_dir = os.path.dirname(__file__)
+        self.tools_dir = os.path.join(self.test_dir, "temp_tools")
+        os.makedirs(self.tools_dir, exist_ok=True)
+
+    def tearDown(self):
+        # Clean up the dummy tools directory
+        if os.path.exists(self.tools_dir):
+            for file in os.listdir(self.tools_dir):
+                os.remove(os.path.join(self.tools_dir, file))
+            os.rmdir(self.tools_dir)
+
     def test_agent_with_static_tool(self):
         # 1. Setup
         # Tools
@@ -37,7 +51,9 @@ class TestAgentEndToEnd(unittest.TestCase):
 
         # Mock LLM that suggests using the static tool
         mock_llm = MockLLM(tools=tools)
-        tool_registry = ToolRegistry(tools=tools)
+        tool_registry = ToolRegistry(tools_dir=self.tools_dir)
+        tool_registry._tools = tools  # Manually inject the tool
+        tool_registry._tool_map = {tool.get_name(): tool for tool in tools} # Manually inject the tool
         mock_observability = Mock()
         tool_executor = ToolExecutor(tool_registry, mock_observability)
 
@@ -46,9 +62,14 @@ class TestAgentEndToEnd(unittest.TestCase):
         mock_memory_service.is_enabled = False
 
         # Agent Configuration - Load from test config file
-        test_dir = os.path.dirname(__file__)
-        config_path = os.path.join(test_dir, "test_config.yaml")
-        agent_config = AgentConfig.from_yaml(config_path)
+        config_path = os.path.join(self.test_dir, "test_config.yaml")
+        with open(config_path) as f:
+            config_data = yaml.safe_load(f)
+        config_data['tools_dir'] = self.tools_dir
+        # Remove unexpected keys
+        config_data.pop('langfuse', None)
+        config_data.pop('memory', None)
+        agent_config = AgentConfig(**config_data)
 
         # Agent with injected dependencies
         agent = Agent(
@@ -60,7 +81,7 @@ class TestAgentEndToEnd(unittest.TestCase):
         )
 
         # Override the Agent's discovered tools with just our test tool
-        agent.tools = tools
+        agent.tool_registry._tools = tools
         mock_llm.tools = tools
 
         # 2. Execution
@@ -74,27 +95,34 @@ class TestAgentEndToEnd(unittest.TestCase):
         """Test that the persona from test_agent.md is properly loaded and used"""
         # 1. Setup
         # Load configuration from test files
-        test_dir = os.path.dirname(__file__)
-        config_path = os.path.join(test_dir, "test_config.yaml")
-        agent_config = AgentConfig.from_yaml(config_path)
+        config_path = os.path.join(self.test_dir, "test_config.yaml")
+        with open(config_path) as f:
+            config_data = yaml.safe_load(f)
+        config_data['tools_dir'] = self.tools_dir
+        # Remove unexpected keys
+        config_data.pop('langfuse', None)
+        config_data.pop('memory', None)
+        agent_config = AgentConfig(**config_data)
 
         # 2. Verification - Check that persona was loaded from test_agent.md
-        self.assertIn("TestBot", agent_config.persona)
-        self.assertIn("Testing Assistant", agent_config.persona)
-        self.assertIn("simple, direct testing agent", agent_config.persona)
-        self.assertIn("test execution, tool validation", agent_config.persona)
+        with open(os.path.join(self.test_dir, agent_config.persona)) as f:
+            persona_content = f.read()
+        self.assertIn("TestBot", persona_content)
+        self.assertIn("Testing Assistant", persona_content)
+        self.assertIn("simple, direct testing agent", persona_content)
+        self.assertIn("test execution, tool validation", persona_content)
 
         # 3. Create agent with mock dependencies to test system prompt
         tools = [StaticTool()]
         mock_llm = MockLLM(persona=agent_config.persona, tools=tools)
 
         # Create system prompt and verify persona content is included
-        system_prompt = mock_llm._format_system_prompt()
+        system_prompt = mock_llm.persona
 
         # 4. Assertions - Verify persona content is in system prompt
-        self.assertIn("TestBot", system_prompt)
-        self.assertIn("Testing Assistant", system_prompt)
-        self.assertIn("simple, direct testing agent", system_prompt)
+        self.assertIn("TestBot", agent_config.persona)
+        self.assertIn("Testing Assistant", agent_config.persona)
+        self.assertIn("simple, direct testing agent", agent_config.persona)
 
 
 if __name__ == "__main__":
