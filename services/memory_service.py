@@ -1,7 +1,6 @@
 import logging
 
 from config import AgentConfig
-
 from interfaces import MemoryServiceProtocol
 
 # mem0 imports
