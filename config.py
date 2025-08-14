@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -14,7 +14,8 @@ class AgentConfig:
     model: str = ""
     tools_dir: str = ""
     verbose: bool = False
-    persona: str = ""
+    personas: dict[str, str] = field(default_factory=dict)
+    default_persona: str = "default"
     langfuse_enabled: bool = False
     langfuse_project_name: str = "agentwerkstatt"
     memory_enabled: bool = False
@@ -22,10 +23,10 @@ class AgentConfig:
     memory_server_url: str = "http://localhost:8000"
 
     @classmethod
-    def from_persona(cls, persona_file: str) -> "AgentConfig":
-        """Load configuration from persona file"""
+    def from_persona_file(cls, persona_file: str) -> str:
+        """Load persona content from a file."""
         with open(persona_file, encoding="utf-8") as f:
-            return cls(persona=f.read().strip())
+            return f.read().strip()
 
     @classmethod
     def from_yaml(cls, file_path: str) -> "AgentConfig":
@@ -33,24 +34,36 @@ class AgentConfig:
         with open(file_path) as f:
             data = yaml.safe_load(f)
 
-        # Load persona content from file if a filename is specified
-        if data.get("persona"):
-            # If persona is specified as a filename, load its content
+        config_dir = Path(file_path).parent
+
+        # Load multiple personas
+        if "personas" in data:
+            loaded_personas = {}
+            for name, persona_path in data["personas"].items():
+                persona_file = (
+                    Path(persona_path)
+                    if os.path.isabs(persona_path)
+                    else config_dir / persona_path
+                )
+                if persona_file.exists():
+                    loaded_personas[name] = cls.from_persona_file(str(persona_file))
+                else:
+                    print(f"Warning: Persona file not found for '{name}': {persona_file}")
+            data["personas"] = loaded_personas
+        # Fallback for single persona for backward compatibility
+        elif data.get("persona"):
             persona_file = data["persona"]
             if not os.path.isabs(persona_file):
-                # If relative path, resolve relative to config file
-                config_dir = Path(file_path).parent
                 persona_file = config_dir / persona_file
-            data["persona"] = cls.from_persona(str(persona_file)).persona
+            data["personas"] = {"default": cls.from_persona_file(str(persona_file))}
+            del data["persona"]
         else:
-            # Fall back to default persona file relative to config file
-            config_dir = Path(file_path).parent
-            default_persona_file = config_dir / "agent.md"
+            # Default to agents.md
+            default_persona_file = config_dir / "agents.md"
             if default_persona_file.exists():
-                data["persona"] = cls.from_persona(str(default_persona_file)).persona
+                data["personas"] = {"default": cls.from_persona_file(str(default_persona_file))}
             else:
-                # If no agent.md in config dir, try agents.md in project root
-                data["persona"] = cls.from_persona("agents.md").persona
+                data["personas"] = {"default": cls.from_persona_file("agents.md")}
 
         # Handle nested langfuse config - flatten it into the main config
         langfuse_data = data.pop("langfuse", {})
@@ -85,8 +98,12 @@ class ConfigValidator:
             errors.append(f"Tools directory does not exist: {config.tools_dir}")
 
         # Validate persona content
-        if not config.persona:
-            errors.append("Agent persona content is required but is empty or missing")
+        if not config.personas:
+            errors.append("Agent personas are required but none are defined.")
+        elif config.default_persona not in config.personas:
+            errors.append(
+                f"Default persona '{config.default_persona}' not found in loaded personas."
+            )
 
         # Langfuse validation
         if config.langfuse_enabled:

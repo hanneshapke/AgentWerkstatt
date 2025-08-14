@@ -1,9 +1,13 @@
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from absl import logging
 
 from ..interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
 from ..llms.claude import ClaudeLLM
+
+if TYPE_CHECKING:
+    from ..agent import Agent
 
 
 class ConversationHandler:
@@ -12,12 +16,14 @@ class ConversationHandler:
     def __init__(
         self,
         llm: ClaudeLLM,
+        agent: "Agent",
         memory_service: MemoryServiceProtocol,
         observability_service: ObservabilityServiceProtocol,
         tool_executor: ToolExecutorProtocol,
         user_id_provider: Callable[[], str] | None = None,
     ):
         self.llm = llm
+        self.agent = agent
         self.memory_service = memory_service
         self.observability_service = observability_service
         self.tool_executor = tool_executor
@@ -26,6 +32,35 @@ class ConversationHandler:
     def _default_user_id_provider(self) -> str:
         """Default user ID provider"""
         return "default_user"
+
+    def _prepend_persona_to_response(self, response_text: str) -> str:
+        """Prepend the active persona name to the response text."""
+        return f"[{self.agent.active_persona_name}] {response_text}"
+
+    def _prepend_persona_to_content(self, content: list[dict]) -> list[dict]:
+        """Prepend the active persona name to the text blocks in a content list."""
+        if not content:
+            return content
+
+        # Create a new list to avoid modifying the original
+        new_content = []
+        prepended = False
+        for block in content:
+            if block.get("type") == "text" and not prepended:
+                new_block = block.copy()
+                new_block["text"] = self._prepend_persona_to_response(new_block.get("text", ""))
+                new_content.append(new_block)
+                prepended = True
+            else:
+                new_content.append(block)
+
+        # If no text block was found to prepend to, add one at the beginning
+        if not prepended:
+            new_content.insert(
+                0, {"type": "text", "text": f"[{self.agent.active_persona_name}]"}
+            )
+
+        return new_content
 
     def process_message(self, user_input: str, enhanced_input: str) -> str:
         """Process a user message and return the agent's response"""
@@ -85,6 +120,7 @@ class ConversationHandler:
 
             # Extract text from response
             final_text = self._extract_text_from_response(final_response.get("content", []))
+            final_text_with_persona = self._prepend_persona_to_response(final_text)
 
             # Update conversation history
             self._update_conversation_history(
@@ -92,9 +128,9 @@ class ConversationHandler:
             )
 
             # Handle storage and observability
-            self._finalize_conversation(user_input, final_text)
+            self._finalize_conversation(user_input, final_text_with_persona)
 
-            return final_text
+            return final_text_with_persona
 
         except Exception as e:
             error_msg = f"Error handling tool response: {str(e)}"
@@ -112,6 +148,7 @@ class ConversationHandler:
                 if text_parts
                 else self._extract_text_from_response(assistant_message)
             )
+            response_text_with_persona = self._prepend_persona_to_response(response_text)
 
             # Don't update conversation history if this is an error message
             if not response_text.startswith("❌ Error communicating with Claude"):
@@ -125,9 +162,9 @@ class ConversationHandler:
                 self._cleanup_conversation_on_error()
 
             # Handle storage and observability
-            self._finalize_conversation(user_input, response_text)
+            self._finalize_conversation(user_input, response_text_with_persona)
 
-            return response_text
+            return response_text_with_persona
 
         except Exception as e:
             error_msg = f"Error handling text response: {str(e)}"
@@ -136,7 +173,10 @@ class ConversationHandler:
             return f"❌ {error_msg}"
 
     def _build_tool_conversation(
-        self, messages: list[dict], assistant_message: list[dict], tool_results: list[dict]
+        self,
+        messages: list[dict],
+        assistant_message: list[dict],
+        tool_results: list[dict],
     ) -> list[dict]:
         """Build conversation with tool results for final LLM call"""
         conversation = messages.copy()
@@ -196,12 +236,15 @@ class ConversationHandler:
         """Update conversation history with all parts of tool interaction"""
         formatted_results = self._format_tool_results(tool_results)
 
+        # Prepend persona to the final assistant message before storing it
+        final_content_with_persona = self._prepend_persona_to_content(final_content)
+
         self.llm.conversation_history.extend(
             [
                 {"role": "user", "content": user_input},
                 {"role": "assistant", "content": assistant_message},
                 {"role": "user", "content": formatted_results},
-                {"role": "assistant", "content": final_content},
+                {"role": "assistant", "content": final_content_with_persona},
             ]
         )
 

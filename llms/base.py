@@ -26,6 +26,10 @@ class BaseLLM:
         self.timeout = 30.0
         self.observability_service = observability_service
 
+    def set_persona(self, persona: str):
+        """Set the persona for the LLM"""
+        raise NotImplementedError("Subclasses must implement this method")
+
     def clear_history(self):
         """Clear conversation history"""
         self.conversation_history = []

@@ -11,12 +11,16 @@ class ClaudeLLM(BaseLLM):
     """Claude LLM implementation with clean API handling"""
 
     def __init__(
-        self, agent_objective: str, model_name: str, tools: dict, observability_service=None
+        self, persona: str, model_name: str, tools: dict, observability_service=None
     ):
-        super().__init__(model_name, tools, agent_objective, observability_service)
+        super().__init__(model_name, tools, persona, observability_service)
         self.base_url = "https://api.anthropic.com/v1/messages"
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self._validate_api_key("ANTHROPIC_API_KEY")
+
+    def set_persona(self, persona: str):
+        """Set the persona for the LLM"""
+        self.persona = persona
 
     @property
     def system_prompt(self) -> str:

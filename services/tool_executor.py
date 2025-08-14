@@ -11,10 +11,23 @@ class ToolExecutor:
     """Service for executing tools with observability support"""
 
     def __init__(
-        self, tool_registry: ToolRegistry, observability_service: ObservabilityServiceProtocol
+        self,
+        tool_registry: ToolRegistry,
+        observability_service: ObservabilityServiceProtocol,
+        agent_instance=None,
     ):
         self.tool_registry = tool_registry
         self.observability_service = observability_service
+        self.agent = agent_instance
+        self._inject_agent_into_tools()
+
+    def _inject_agent_into_tools(self):
+        """Inject the agent instance into tools that require it."""
+        if not self.agent:
+            return
+        for tool in self.tool_registry.get_tools():
+            if hasattr(tool, "agent"):
+                tool.agent = self.agent
 
     def execute_tool_calls(self, assistant_message: list) -> tuple[list, list]:
         """Execute all tool calls from an assistant message"""
