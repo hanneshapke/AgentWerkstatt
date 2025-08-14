@@ -120,7 +120,7 @@ To use mem0 with your AgentWerkstatt agent:
    pip install agentwerkstatt[memory]
    ```
 
-2. Configure memory in `agent_config.yaml`:
+2. Configure memory in `config.yaml`:
    ```yaml
    memory:
      enabled: true

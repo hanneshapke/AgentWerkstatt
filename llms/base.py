@@ -12,15 +12,15 @@ class BaseLLM:
     def __init__(
         self,
         model_name: str,
-        tools: dict[str, Any],
-        agent_objective: str = "",
+        tools: list[Any],
+        persona: str = "",
         observability_service=None,
     ):
         self.model_name = model_name
         self.api_key = ""
         self.base_url = ""
         self.conversation_history = []
-        self.agent_objective = agent_objective
+        self.persona = persona
         self.base_system_prompt = ""
         self.tools = tools
         self.timeout = 30.0
@@ -45,7 +45,7 @@ class BaseLLM:
     def _get_default_system_prompt_template(self) -> str:
         """Get the default system prompt template"""
         return """
-{agent_objective}
+{persona}
 
 You have {num_tools} tools at your disposal:
 
@@ -53,12 +53,12 @@ You have {num_tools} tools at your disposal:
 """.strip()
 
     def _format_system_prompt(self, template: str = None) -> str:
-        """Format the system prompt with agent objective and tools"""
+        """Format the system prompt with persona and tools"""
         if template is None:
             template = self._get_default_system_prompt_template()
 
         return template.format(
-            agent_objective=self.agent_objective,
+            persona=self.persona,
             num_tools=len(self.tools),
             tool_descriptions=self._format_tool_descriptions(),
         )

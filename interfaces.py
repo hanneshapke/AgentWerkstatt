@@ -1,8 +1,17 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .config import AgentConfig
+
+
+@dataclass
+class Message:
+    """Represents a message in a conversation"""
+
+    role: str
+    content: str
 
 
 class MemoryServiceProtocol(ABC):

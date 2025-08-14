@@ -53,7 +53,7 @@ export ANTHROPIC_API_KEY="your_anthropic_api_key"
 
 ### 4. Enable Tracing in Configuration
 
-Edit your `agent_config.yaml`:
+Edit your `config.yaml`:
 
 ```yaml
 # Langfuse Configuration
@@ -164,7 +164,7 @@ langfuse_context.update_current_observation(
 To disable tracing temporarily:
 
 ```yaml
-# In agent_config.yaml
+# In config.yaml
 langfuse:
   enabled: false
 ```

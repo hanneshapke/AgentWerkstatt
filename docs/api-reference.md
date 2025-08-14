@@ -59,7 +59,7 @@ class AgentConfig:
         model: str = "claude-sonnet-4-20250514",
         tools_dir: str = "./tools",
         verbose: bool = True,
-        agent_objective: str = "",
+        persona: str = "",
         memory_enabled: bool = False,
         langfuse_enabled: bool = False
     ):
@@ -69,7 +69,7 @@ class AgentConfig:
             model: LLM model identifier
             tools_dir: Directory containing tool modules
             verbose: Enable verbose logging
-            agent_objective: System prompt for the agent
+            persona: System prompt for the agent
             memory_enabled: Enable mem0 memory integration
             langfuse_enabled: Enable Langfuse tracing
         """
@@ -82,7 +82,7 @@ class AgentConfig:
   Load configuration from a YAML file.
 
   ```python
-  config = AgentConfig.from_yaml("agent_config.yaml")
+  config = AgentConfig.from_yaml("config.yaml")
   agent = Agent(config)
   ```
 
@@ -91,7 +91,7 @@ class AgentConfig:
 - `model: str` - The LLM model to use
 - `tools_dir: str` - Directory containing tools
 - `verbose: bool` - Verbose logging flag
-- `agent_objective: str` - System prompt/objective
+- `persona: str` - System prompt/persona
 - `memory_enabled: bool` - Memory system flag
 - `langfuse_enabled: bool` - Tracing flag
 
@@ -103,13 +103,13 @@ Abstract base class for LLM providers.
 
 ```python
 class BaseLLM:
-    def __init__(self, model_name: str, tools: List[BaseTool], agent_objective: str = ""):
+    def __init__(self, model_name: str, tools: List[BaseTool], persona: str = ""):
         """Initialize the LLM with model, tools, and objective.
 
         Args:
             model_name: Name/identifier of the model
             tools: List of available tools
-            agent_objective: System prompt or objective
+            persona: System prompt or persona
         """
 ```
 
@@ -143,7 +143,7 @@ Claude (Anthropic) implementation of BaseLLM.
 
 ```python
 class ClaudeLLM(BaseLLM):
-    def __init__(self, model_name: str, tools: List[BaseTool], agent_objective: str = ""):
+    def __init__(self, model_name: str, tools: List[BaseTool], persona: str = ""):
         """Initialize Claude LLM.
 
         Requires ANTHROPIC_API_KEY environment variable.
@@ -375,7 +375,7 @@ class AgentWerkstattError(Exception):
 from agentwerkstatt import Agent, AgentConfig
 
 # Load configuration
-config = AgentConfig.from_yaml("agent_config.yaml")
+config = AgentConfig.from_yaml("config.yaml")
 
 # Create agent
 agent = Agent(config)
@@ -395,7 +395,7 @@ config = AgentConfig(
     model="claude-haiku-3-20240307",
     tools_dir="./custom_tools",
     verbose=True,
-    agent_objective="You are a research assistant specializing in scientific papers.",
+    persona="You are a research assistant specializing in scientific papers.",
     memory_enabled=True,
     langfuse_enabled=True
 )

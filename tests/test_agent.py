@@ -134,7 +134,7 @@ def mock_config():
         model="claude-3-sonnet-20240229",
         tools_dir="tools",
         verbose=False,
-        agent_objective="Test agent",
+        persona="Test agent",
         langfuse_enabled=False,
         memory_enabled=False,
     )

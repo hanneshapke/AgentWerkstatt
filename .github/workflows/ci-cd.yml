@@ -49,6 +49,13 @@ jobs:
       run: |
         uv run pytest --cov=agentwerkstatt --cov-report=xml --cov-report=term
 
+    - name: Run end-to-end test
+      run: |
+        uv tool install build
+        uv tool run --from build pyproject-build
+        uv pip install dist/*.whl
+        uv run pytest tests/test_agent_end_to_end.py -v
+
     - name: Upload coverage reports to Codecov
       if: matrix.python-version == '3.11'
       uses: codecov/codecov-action@v3

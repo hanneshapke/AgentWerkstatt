@@ -11,7 +11,7 @@ AgentWerkstatt follows a modular architecture with clear separation of concerns,
 ```
 AgentWerkstatt/
 ├── agent.py               # Main agent implementation and CLI
-├── agent_config.yaml      # Default configuration
+├── config.yaml      # Default configuration
 ├── llms/                  # LLM provider modules
 │   ├── base.py           # Base LLM abstraction
 │   ├── claude.py         # Claude implementation
@@ -49,10 +49,10 @@ The `BaseLLM` class provides a common interface for all LLM providers:
 
 ```python
 class BaseLLM:
-    def __init__(self, model_name: str, tools: list, agent_objective: str = ""):
+    def __init__(self, model_name: str, tools: list, persona: str = ""):
         self.model_name = model_name
         self.tools = tools
-        self.agent_objective = agent_objective
+        self.persona = persona
         self.conversation_history = []
 
     def make_api_request(self, messages: list[dict]) -> dict:

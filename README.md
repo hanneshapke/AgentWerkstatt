@@ -130,7 +130,7 @@ For detailed setup instructions, see:
 Run the interactive CLI:
 
 ```bash
-# Using default configuration (agent_config.yaml)
+# Using default configuration (config.yaml)
 python agent.py
 
 # Using a custom configuration file
@@ -141,7 +141,7 @@ Example conversation:
 ```
 🤖 AgentWerkstatt
 ==================================================
-Loading config from: agent_config.yaml
+Loading config from: config.yaml
 
 I'm an example AgentWerkstatt assistant with web search capabilities!
 Ask me to search the web for information.
@@ -167,7 +167,7 @@ You: quit
 from agentwerkstatt import Agent, AgentConfig
 
 # Initialize with default config
-config = AgentConfig.from_yaml("agent_config.yaml")
+config = AgentConfig.from_yaml("config.yaml")
 agent = Agent(config)
 
 # Or customize the configuration
@@ -175,7 +175,7 @@ config = AgentConfig(
     model="claude-sonnet-4-20250514",
     tools_dir="./tools",
     verbose=True,
-    agent_objective="You are a helpful assistant with web search capabilities."
+    persona="You are a helpful assistant with web search capabilities."
 )
 agent = Agent(config)
 
@@ -191,7 +191,7 @@ agent.llm.clear_history()
 
 The CLI supports the following command line arguments:
 
-- `--config` - Path to the agent configuration file (default: `agent_config.yaml`)
+- `--config` - Path to the agent configuration file (default: `config.yaml`)
 - `--help` - Show help message and available options
 
 Examples:
@@ -219,7 +219,7 @@ For comprehensive documentation, please visit our [documentation directory](docs
 
 ## Quick Configuration Reference
 
-Basic configuration in `agent_config.yaml`:
+Basic configuration in `config.yaml`:
 
 ```yaml
 # LLM Model Configuration
@@ -232,7 +232,7 @@ tools_dir: "./tools"
 verbose: true
 
 # Agent Objective/System Prompt
-agent_objective: |
+persona: |
   You are a helpful assistant with web search capabilities.
   You can search the web for current information and provide accurate, helpful responses.
   Always be conversational and helpful in your responses.

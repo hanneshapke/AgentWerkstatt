@@ -8,7 +8,7 @@ from .agent import Agent
 from .config import ConfigManager
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("config", "agent_config.yaml", "Path to the agent configuration file.")
+flags.DEFINE_string("config", "config.yaml", "Path to the agent configuration file.")
 flags.DEFINE_string(
     "session_id", None, "Optional session ID for grouping traces. Auto-generated if not provided."
 )

@@ -21,8 +21,4 @@ memory:
   model_name: "gpt-4o-mini"  # Model for memory processing
   server_url: "http://localhost:8000"  # mem0 server endpoint
 
-# Agent Objective/System Prompt
-agent_objective: |
-  You are a helpful assistant with web search capabilities.
-  You can search the web for current information and provide accurate, helpful responses.
-  Always be conversational and helpful in your responses.
+persona: agents.md

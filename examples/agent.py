@@ -3,7 +3,7 @@ from datetime import datetime
 from agentwerkstatt import Agent, AgentConfig
 
 # Method 1: Use default configuration
-config = AgentConfig.from_yaml("agent_config.yaml")  # If you have a config file
+config = AgentConfig.from_yaml("config.yaml")  # If you have a config file
 session_id = f"user-123-chat-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 agent = Agent(config, session_id=session_id)
 

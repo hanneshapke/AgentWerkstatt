@@ -60,8 +60,8 @@ import httpx
 from typing import List, Dict, Tuple, Any
 
 class OpenAILLM(BaseLLM):
-    def __init__(self, model_name: str, tools: list, agent_objective: str = ""):
-        super().__init__(model_name, tools, agent_objective)
+    def __init__(self, model_name: str, tools: list, persona: str = ""):
+    super().__init__(model_name, tools, persona)
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required")
@@ -146,10 +146,10 @@ Extend the configuration system to support your new provider:
 def create_llm(config: AgentConfig, tools: List[BaseTool]) -> BaseLLM:
     if config.model.startswith("claude"):
         from .llms import ClaudeLLM
-        return ClaudeLLM(config.model, tools, config.agent_objective)
+        return ClaudeLLM(config.model, tools, config.persona)
     elif config.model.startswith("gpt"):
         from .llms import OpenAILLM
-        return OpenAILLM(config.model, tools, config.agent_objective)
+        return OpenAILLM(config.model, tools, config.persona)
     else:
         raise ValueError(f"Unsupported model: {config.model}")
 ```
