@@ -2,8 +2,8 @@ from collections.abc import Callable
 
 from absl import logging
 
-from ..interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
-from ..llms.base import BaseLLM
+from interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
+from llms.base import BaseLLM
 
 
 class ConversationHandler:

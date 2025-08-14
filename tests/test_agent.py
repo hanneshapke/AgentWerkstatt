@@ -7,9 +7,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from .. import Agent, AgentConfig
-from ..llms.mock import MockLLM
-from ..services.tool_executor import ToolExecutor
+from config import AgentConfig
+from llms.mock import MockLLM
+from main import Agent
+from services.tool_executor import ToolExecutor
 
 
 class MockMemoryService:

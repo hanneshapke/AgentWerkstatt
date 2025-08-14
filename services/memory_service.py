@@ -1,6 +1,6 @@
 import logging
 
-from ..config import AgentConfig
+from config import AgentConfig
 
 # mem0 imports
 try:
