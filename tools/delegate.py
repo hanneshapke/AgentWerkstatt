@@ -51,9 +51,7 @@ class DelegateTool(BaseTool):
         try:
             self.agent.switch_persona(persona_name)
             # We can reuse the session_id from the agent
-            result = self.agent.process_request(
-                task_description, session_id=self.agent.session_id
-            )
+            result = self.agent.process_request(task_description, session_id=self.agent.session_id)
             return {"result": f"Task completed by {persona_name}. Output: {result}"}
         except Exception as e:
             return {"error": str(e)}

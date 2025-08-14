@@ -10,9 +10,7 @@ from .base import BaseLLM
 class ClaudeLLM(BaseLLM):
     """Claude LLM implementation with clean API handling"""
 
-    def __init__(
-        self, persona: str, model_name: str, tools: dict, observability_service=None
-    ):
+    def __init__(self, persona: str, model_name: str, tools: dict, observability_service=None):
         super().__init__(model_name, tools, persona, observability_service)
         self.base_url = "https://api.anthropic.com/v1/messages"
         self.api_key = os.getenv("ANTHROPIC_API_KEY")

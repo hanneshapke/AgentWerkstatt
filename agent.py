@@ -99,9 +99,7 @@ class Agent:
 
     def _create_tool_executor(self) -> ToolExecutorProtocol:
         """Create tool executor with observability support"""
-        return ToolExecutor(
-            self.tool_registry, self.observability_service, agent_instance=self
-        )
+        return ToolExecutor(self.tool_registry, self.observability_service, agent_instance=self)
 
     def _create_conversation_handler(self) -> ConversationHandlerProtocol:
         """Create conversation handler with all dependencies"""

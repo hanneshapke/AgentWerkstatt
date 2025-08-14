@@ -56,9 +56,7 @@ class ConversationHandler:
 
         # If no text block was found to prepend to, add one at the beginning
         if not prepended:
-            new_content.insert(
-                0, {"type": "text", "text": f"[{self.agent.active_persona_name}]"}
-            )
+            new_content.insert(0, {"type": "text", "text": f"[{self.agent.active_persona_name}]"})
 
         return new_content
 

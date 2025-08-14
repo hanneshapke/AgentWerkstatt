@@ -41,9 +41,7 @@ class AgentConfig:
             loaded_personas = {}
             for name, persona_path in data["personas"].items():
                 persona_file = (
-                    Path(persona_path)
-                    if os.path.isabs(persona_path)
-                    else config_dir / persona_path
+                    Path(persona_path) if os.path.isabs(persona_path) else config_dir / persona_path
                 )
                 if persona_file.exists():
                     loaded_personas[name] = cls.from_persona_file(str(persona_file))
