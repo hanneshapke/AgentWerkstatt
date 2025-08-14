@@ -120,9 +120,9 @@ class TestAgentEndToEnd(unittest.TestCase):
         # Create system prompt and verify persona content is included
 
         # 4. Assertions - Verify persona content is in system prompt
-        self.assertIn("TestBot", agent_config.persona)
-        self.assertIn("Testing Assistant", agent_config.persona)
-        self.assertIn("simple, direct testing agent", agent_config.persona)
+        self.assertIn("TestBot", persona_content)
+        self.assertIn("Testing Assistant", persona_content)
+        self.assertIn("simple, direct testing agent", persona_content)
 
 
 if __name__ == "__main__":
