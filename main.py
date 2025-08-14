@@ -1,21 +1,19 @@
-#!/usr/bin/env python3
-
 from absl import logging
 
-from .config import AgentConfig
-from .interfaces import (
+from config import AgentConfig
+from interfaces import (
     ConversationHandlerProtocol,
     MemoryServiceProtocol,
     ObservabilityServiceProtocol,
     ToolExecutorProtocol,
 )
-from .llms.base import BaseLLM
-from .llms.claude import ClaudeLLM
-from .services.conversation_handler import ConversationHandler
-from .services.langfuse_service import LangfuseService, NoOpObservabilityService
-from .services.memory_service import MemoryService, NoOpMemoryService
-from .services.tool_executor import ToolExecutor
-from .tools.discovery import ToolRegistry
+from llms.base import BaseLLM
+from llms.claude import ClaudeLLM
+from services.conversation_handler import ConversationHandler
+from services.langfuse_service import LangfuseService, NoOpObservabilityService
+from services.memory_service import MemoryService, NoOpMemoryService
+from services.tool_executor import ToolExecutor
+from tools.discovery import ToolRegistry
 
 
 class Agent:

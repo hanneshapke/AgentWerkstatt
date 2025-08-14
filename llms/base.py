@@ -1,93 +1,59 @@
+from abc import ABC, abstractmethod
 from typing import Any
 
 from dotenv import load_dotenv
 
-# Load environment variables once at module level
+# Load environment variables from a .env file if it exists
 load_dotenv()
 
 
-class BaseLLM:
-    """Abstract base class for all LLMs"""
+class BaseLLM(ABC):
+    """Abstract base class for all Large Language Models."""
 
     def __init__(
         self,
         model_name: str,
-        tools: list[Any],
+        tools: list[Any] | None = None,
         persona: str = "",
         observability_service=None,
     ):
         self.model_name = model_name
-        self.api_key = ""
-        self.base_url = ""
-        self.conversation_history = []
+        self.tools = tools or []
         self.persona = persona
-        self.base_system_prompt = ""
-        self.tools = tools
-        self.timeout = 30.0
         self.observability_service = observability_service
+        self.conversation_history: list[dict] = []
+        self.timeout = 30.0
 
     def clear_history(self):
-        """Clear conversation history"""
+        """Clears the conversation history."""
         self.conversation_history = []
 
-    def _format_tool_descriptions(self) -> str:
-        """Format tool descriptions for system prompt"""
-        if not self.tools:
-            return "No tools available."
+    def _validate_api_key(self, api_key_name: str):
+        """
+        Validates that the specified API key is set as an environment variable.
+        Raises:
+            ValueError: If the API key environment variable is not set.
+        """
+        import os
 
-        tool_descriptions = ""
-        for tool in self.tools:
-            tool_descriptions += (
-                f"{tool.get_name()} ({tool.get_function_name()}): {tool.description}\n"
-            )
-        return tool_descriptions.strip()
-
-    def _get_default_system_prompt_template(self) -> str:
-        """Get the default system prompt template"""
-        return """
-{persona}
-
-You have {num_tools} tools at your disposal:
-
-{tool_descriptions}
-""".strip()
-
-    def _format_system_prompt(self, template: str = None) -> str:
-        """Format the system prompt with persona and tools"""
-        if template is None:
-            template = self._get_default_system_prompt_template()
-
-        return template.format(
-            persona=self.persona,
-            num_tools=len(self.tools),
-            tool_descriptions=self._format_tool_descriptions(),
-        )
-
-    def _validate_api_key(self, api_key_name: str) -> None:
-        """Validate that API key is set, raise error if not"""
-        if not self.api_key:
-            raise ValueError(f"{api_key_name} environment variable is required")
+        if not os.getenv(api_key_name):
+            raise ValueError(f"'{api_key_name}' environment variable is required but not set.")
 
     def _get_tool_schemas(self) -> list[dict]:
-        """Get tool schemas for API calls"""
-        return [tool.get_schema() for tool in self.tools] if self.tools else []
+        """Returns the JSON schema for each registered tool."""
+        return [tool.get_schema() for tool in self.tools]
 
-    def make_api_request(self, messages: list[dict]) -> str:
-        """Make an API request to the LLM"""
-        raise NotImplementedError("Subclasses must implement this method")
-
-    def process_request(self, messages: list[dict]) -> tuple[list[dict], list]:
-        """Process user request using LLM
-
-        Args:
-            messages: List of conversation messages
-
-        Returns:
-            Tuple of (updated_messages, assistant_message_content)
+    @abstractmethod
+    def make_api_request(self, messages: list[dict]) -> dict:
         """
-        raise NotImplementedError("Subclasses must implement this method")
+        Makes a raw API request to the LLM.
+        Subclasses must implement this method to handle the specific API protocol.
+        """
+        raise NotImplementedError
 
-    @property
-    def system_prompt(self) -> str:
-        """Get the system prompt for the LLM"""
-        return self.base_system_prompt
+    @abstractmethod
+    def process_request(self, messages: list[dict]) -> tuple[list[dict], list[dict]]:
+        """
+        Processes a user request by sending it to the LLM and returning the conversation history and response.
+        """
+        raise NotImplementedError

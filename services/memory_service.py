@@ -1,6 +1,7 @@
 import logging
 
-from ..config import AgentConfig
+from config import AgentConfig
+from interfaces import MemoryServiceProtocol
 
 # mem0 imports
 try:
@@ -11,7 +12,7 @@ except ImportError:
     MEM0_AVAILABLE = False
 
 
-class MemoryService:
+class MemoryService(MemoryServiceProtocol):
     """Service for handling memory operations using mem0"""
 
     def __init__(self, config: AgentConfig):
@@ -107,7 +108,7 @@ class MemoryService:
             logging.error(f"Failed to store conversation in memory: {e}")
 
 
-class NoOpMemoryService:
+class NoOpMemoryService(MemoryServiceProtocol):
     """No-operation memory service for when memory is disabled"""
 
     @property

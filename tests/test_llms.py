@@ -2,15 +2,9 @@
 Unit tests for the LLMs module
 """
 
-import os
-import sys
-
 import pytest
 
-# Add the project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from agentwerkstatt.llms.base import BaseLLM
+from llms.base import BaseLLM
 
 
 class TestBaseLLM:
@@ -58,8 +52,7 @@ class TestLLMsIntegration:
     @pytest.mark.integration
     def test_llms_modules_can_be_imported(self):
         """Test that all LLMs modules can be imported successfully."""
-        import llms.base
-        import llms.claude
+        import llms
 
         assert hasattr(llms.base, "BaseLLM")
         assert hasattr(llms.claude, "ClaudeLLM")
