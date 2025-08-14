@@ -2,11 +2,16 @@ from collections.abc import Callable
 
 from absl import logging
 
-from interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
+from interfaces import (
+    ConversationHandlerProtocol,
+    MemoryServiceProtocol,
+    ObservabilityServiceProtocol,
+    ToolExecutorProtocol,
+)
 from llms.base import BaseLLM
 
 
-class ConversationHandler:
+class ConversationHandler(ConversationHandlerProtocol):
     """Handles the conversation flow, including message processing, tool execution, and memory management."""
 
     def __init__(

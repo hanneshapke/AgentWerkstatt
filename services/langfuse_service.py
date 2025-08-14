@@ -3,6 +3,7 @@ import os
 from typing import Any
 
 from config import AgentConfig
+from interfaces import ObservabilityServiceProtocol
 
 # Langfuse imports
 try:
@@ -20,7 +21,7 @@ except ImportError:
         return decorator if args else decorator
 
 
-class LangfuseService:
+class LangfuseService(ObservabilityServiceProtocol):
     """Service for handling Langfuse observability operations"""
 
     def __init__(self, config: AgentConfig):
@@ -239,7 +240,7 @@ class LangfuseService:
         return self._enabled and self._client is not None
 
 
-class NoOpObservabilityService:
+class NoOpObservabilityService(ObservabilityServiceProtocol):
     """No-operation observability service for when Langfuse is disabled"""
 
     @property

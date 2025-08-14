@@ -3,11 +3,11 @@ from typing import Any
 
 from absl import logging
 
-from interfaces import ObservabilityServiceProtocol
+from interfaces import ObservabilityServiceProtocol, ToolExecutorProtocol
 from tools.discovery import ToolRegistry
 
 
-class ToolExecutor:
+class ToolExecutor(ToolExecutorProtocol):
     """Service for executing tool calls from an LLM."""
 
     def __init__(
