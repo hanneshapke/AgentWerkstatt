@@ -3,33 +3,22 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hanneshapke/agentwerkstatt/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
-  </a>
-  <a href="https://github.com/hanneshapke/agentwerkstatt">
-    <img src="https://img.shields.io/github/stars/hanneshapke/agentwerkstatt?style=social" alt="GitHub Stars">
-  </a>
-  <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python 3.10+">
-  </a>
-  <a href="https://github.com/hanneshapke/agentwerkstatt/issues">
-    <img src="https://img.shields.io/github/issues/hanneshapke/agentwerkstatt" alt="GitHub Issues">
-  </a>
-  <a href="https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md">
-    <img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions Welcome">
-  </a>
-  <a href="https://github.com/hanneshapke/agentwerkstatt/pulls">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
-  </a>
+  <a href="https://github.com/hanneshapke/agentwerkstatt/blob/main/LICENSE" style="text-decoration: none;"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/hanneshapke/agentwerkstatt" style="text-decoration: none;"><img src="https://img.shields.io/github/stars/hanneshapke/agentwerkstatt?style=social" alt="GitHub Stars"></a>
+  <a href="https://www.python.org/" style="text-decoration: none;"><img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python 3.10+"></a>
+  <a href="https://github.com/hanneshapke/agentwerkstatt/issues" style="text-decoration: none;"><img src="https://img.shields.io/github/issues/hanneshapke/agentwerkstatt" alt="GitHub Issues"></a>
+  <a href="https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md" style="text-decoration: none;"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions Welcome"></a>
+  <a href="https://github.com/hanneshapke/agentwerkstatt/pulls" style="text-decoration: none;"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/astral-sh/ruff">
-    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff">
-  </a>
-  <a href="https://docs.astral.sh/uv/">
-    <img src="https://img.shields.io/badge/uv-dependency%20manager-blue?logo=uv" alt="uv">
-  </a>
+  <a href="https://github.com/astral-sh/ruff" style="text-decoration: none;"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
+  <a href="https://docs.astral.sh/uv/" style="text-decoration: none;"><img src="https://img.shields.io/badge/uv-dependency%20manager-blue?logo=uv" alt="uv"></a>
+</p>
+
+<p align="center">
+  <a href="https://www.bonfire.com/agentwerkstatt" style="text-decoration: none;"><img src="https://img.shields.io/badge/Buy%20Swag!-red?logo=fireship" alt="bonfire-badge"></a>
+  <a href="https://www.buymeacoffee.com/hanneshapke" target="_blank" style="text-decoration: none;"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-yellow?logo=buymeacoffee" alt="buymeacoffee-badge"></a>
 </p>
 
 # AgentWerkstatt 🤖
