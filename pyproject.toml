@@ -73,7 +73,7 @@ agentwerkstatt = ["**/config.yaml", "**/docker-compose.yaml", "**/Dockerfile*", 
 
 [tool.setuptools_scm]
 # Enable setuptools-scm for dynamic versioning from git tags
-write_to = "_version.py"
+# Note: No need for write_to when using importlib.metadata
 # Use version format without local identifiers for test-pypi compatibility
 version_scheme = "post-release"
 local_scheme = "no-local-version"
