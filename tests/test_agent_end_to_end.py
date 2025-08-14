@@ -1,3 +1,4 @@
+import os
 import unittest
 from typing import Any
 from unittest.mock import Mock
@@ -44,13 +45,10 @@ class TestAgentEndToEnd(unittest.TestCase):
         mock_memory_service = Mock()
         mock_memory_service.is_enabled = False
 
-        # Agent Configuration
-        agent_config = AgentConfig(
-            model="mock-model",
-            tools_dir="",  # Empty to prevent tool discovery
-            verbose=False,
-            persona="Test agent",
-        )
+        # Agent Configuration - Load from test config file
+        test_dir = os.path.dirname(__file__)
+        config_path = os.path.join(test_dir, "test_config.yaml")
+        agent_config = AgentConfig.from_yaml(config_path)
 
         # Agent with injected dependencies
         agent = Agent(
@@ -71,6 +69,32 @@ class TestAgentEndToEnd(unittest.TestCase):
 
         # 3. Assertion
         self.assertIn("static tool output", response)
+
+    def test_agent_persona_in_system_prompt(self):
+        """Test that the persona from test_agent.md is properly loaded and used"""
+        # 1. Setup
+        # Load configuration from test files
+        test_dir = os.path.dirname(__file__)
+        config_path = os.path.join(test_dir, "test_config.yaml")
+        agent_config = AgentConfig.from_yaml(config_path)
+
+        # 2. Verification - Check that persona was loaded from test_agent.md
+        self.assertIn("TestBot", agent_config.persona)
+        self.assertIn("Testing Assistant", agent_config.persona)
+        self.assertIn("simple, direct testing agent", agent_config.persona)
+        self.assertIn("test execution, tool validation", agent_config.persona)
+
+        # 3. Create agent with mock dependencies to test system prompt
+        tools = [StaticTool()]
+        mock_llm = MockLLM(persona=agent_config.persona, tools=tools)
+
+        # Create system prompt and verify persona content is included
+        system_prompt = mock_llm._format_system_prompt()
+
+        # 4. Assertions - Verify persona content is in system prompt
+        self.assertIn("TestBot", system_prompt)
+        self.assertIn("Testing Assistant", system_prompt)
+        self.assertIn("simple, direct testing agent", system_prompt)
 
 
 if __name__ == "__main__":

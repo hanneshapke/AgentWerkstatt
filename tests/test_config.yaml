@@ -1,0 +1,25 @@
+# Test Configuration for AgentWerkstatt
+# Configuration file for end-to-end testing
+
+# LLM Model Configuration
+model: "mock-model"
+
+# Tools Configuration
+tools_dir: ""  # Empty to prevent tool discovery in tests
+
+# Logging Configuration
+verbose: false
+
+# Langfuse Configuration (Disabled for testing)
+langfuse:
+  enabled: false
+  project_name: "agentwerkstatt-test"
+
+# Memory Configuration (Disabled for testing)
+memory:
+  enabled: false
+  model_name: "gpt-4o-mini"
+  server_url: "http://localhost:8000"
+
+# Agent Persona
+persona: test_agent.md

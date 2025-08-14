@@ -13,18 +13,19 @@ class MockLLM(BaseLLM):
     def __init__(
         self,
         model_name: str = "mock-model",
-        agent_objective: str = "Test agent",
+        persona: str = "Test agent",
         tools: list[Any] = None,
         responses: list[Message] = None,
     ):
         """Initialize mock LLM without calling parent __init__ to avoid API key validation"""
         self.model_name = model_name
-        self.agent_objective = agent_objective
+        self.persona = persona
         self.tools = tools or []
         self.conversation_history = []
-        self.system_message = f"You are {agent_objective}. You are a helpful assistant."
+        self.system_message = f"You are {persona}. You are a helpful assistant."
         self.responses = responses or []
         self.response_index = 0
+        self.observability_service = None
 
     def make_api_request(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """Mock API request that returns a predictable response"""
