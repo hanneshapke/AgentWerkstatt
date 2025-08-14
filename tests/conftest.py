@@ -1,11 +1,8 @@
 """Pytest configuration and fixtures."""
 
 import os
-import sys
 
 import pytest
-
-
 
 
 @pytest.fixture

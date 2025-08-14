@@ -2,12 +2,8 @@
 Unit tests for the LLMs module
 """
 
-import os
-import sys
 
 import pytest
-
-
 
 from ..llms.base import BaseLLM
 

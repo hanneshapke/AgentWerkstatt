@@ -1,7 +1,10 @@
 import os
+
 import httpx
 from absl import logging
+
 from .base import BaseLLM
+
 
 class ClaudeLLM(BaseLLM):
     """A client for interacting with the Anthropic Claude LLM."""
@@ -37,7 +40,7 @@ class ClaudeLLM(BaseLLM):
                 )
                 response.raise_for_status()  # Raises HTTPStatusError for 4xx/5xx responses
                 response_data = response.json()
-                
+
                 self.observability_service.update_llm_observation(llm_span, response_data)
                 return response_data
 

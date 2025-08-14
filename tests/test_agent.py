@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
+
 from .. import Agent, AgentConfig
 from ..llms.mock import MockLLM
 from ..services.tool_executor import ToolExecutor

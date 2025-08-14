@@ -2,11 +2,12 @@ import os
 import unittest
 from typing import Any
 from unittest.mock import Mock
+
 import yaml
 
-from ..main import Agent
 from ..config import AgentConfig
 from ..llms.mock import MockLLM
+from ..main import Agent
 from ..services.tool_executor import ToolExecutor
 from ..tools.base import BaseTool
 from ..tools.discovery import ToolRegistry
@@ -53,7 +54,9 @@ class TestAgentEndToEnd(unittest.TestCase):
         mock_llm = MockLLM(tools=tools)
         tool_registry = ToolRegistry(tools_dir=self.tools_dir)
         tool_registry._tools = tools  # Manually inject the tool
-        tool_registry._tool_map = {tool.get_name(): tool for tool in tools} # Manually inject the tool
+        tool_registry._tool_map = {
+            tool.get_name(): tool for tool in tools
+        }  # Manually inject the tool
         mock_observability = Mock()
         tool_executor = ToolExecutor(tool_registry, mock_observability)
 
@@ -65,10 +68,10 @@ class TestAgentEndToEnd(unittest.TestCase):
         config_path = os.path.join(self.test_dir, "test_config.yaml")
         with open(config_path) as f:
             config_data = yaml.safe_load(f)
-        config_data['tools_dir'] = self.tools_dir
+        config_data["tools_dir"] = self.tools_dir
         # Remove unexpected keys
-        config_data.pop('langfuse', None)
-        config_data.pop('memory', None)
+        config_data.pop("langfuse", None)
+        config_data.pop("memory", None)
         agent_config = AgentConfig(**config_data)
 
         # Agent with injected dependencies
@@ -98,10 +101,10 @@ class TestAgentEndToEnd(unittest.TestCase):
         config_path = os.path.join(self.test_dir, "test_config.yaml")
         with open(config_path) as f:
             config_data = yaml.safe_load(f)
-        config_data['tools_dir'] = self.tools_dir
+        config_data["tools_dir"] = self.tools_dir
         # Remove unexpected keys
-        config_data.pop('langfuse', None)
-        config_data.pop('memory', None)
+        config_data.pop("langfuse", None)
+        config_data.pop("memory", None)
         agent_config = AgentConfig(**config_data)
 
         # 2. Verification - Check that persona was loaded from test_agent.md
@@ -113,11 +116,8 @@ class TestAgentEndToEnd(unittest.TestCase):
         self.assertIn("test execution, tool validation", persona_content)
 
         # 3. Create agent with mock dependencies to test system prompt
-        tools = [StaticTool()]
-        mock_llm = MockLLM(persona=agent_config.persona, tools=tools)
 
         # Create system prompt and verify persona content is included
-        system_prompt = mock_llm.persona
 
         # 4. Assertions - Verify persona content is in system prompt
         self.assertIn("TestBot", agent_config.persona)

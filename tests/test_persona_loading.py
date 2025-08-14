@@ -8,6 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
+
 from ..config import AgentConfig
 from ..llms.base import BaseLLM
 
@@ -125,6 +126,7 @@ def test_system_prompt_generation_with_persona(temp_config_files, test_persona_c
     assert "SupportBot" in system_prompt
     assert "friendly, patient, and solution-oriented" in system_prompt
 
+
 def test_custom_system_prompt_template_with_persona(temp_config_files):
     """Test custom system prompt template with loaded persona"""
     config = AgentConfig.from_yaml(temp_config_files["config_path"])
@@ -138,7 +140,6 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     # Verify custom format is applied
     assert "Customer Support Agent" in custom_prompt
     assert "SupportBot" in custom_prompt
-
 
 
 def test_fallback_to_default_persona_file():

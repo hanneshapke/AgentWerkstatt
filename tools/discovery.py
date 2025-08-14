@@ -1,8 +1,11 @@
-import os
 import importlib
 import inspect
+import os
+
 from absl import logging
+
 from .base import BaseTool
+
 
 class ToolRegistry:
     """A registry for discovering and managing agent tools."""
@@ -37,7 +40,7 @@ class ToolRegistry:
                 logging.error(f"Failed to import tool module {module_name}: {e}")
             except Exception as e:
                 logging.error(f"Error instantiating tool from {module_name}: {e}", exc_info=True)
-        
+
         return tools
 
     def get_tools(self) -> list[BaseTool]:

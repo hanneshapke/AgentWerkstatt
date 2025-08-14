@@ -6,8 +6,8 @@ memory, and observability features.
 """
 
 from ._version import __version__
-from .main import Agent
 from .config import AgentConfig
+from .main import Agent
 
 __all__ = [
     "Agent",

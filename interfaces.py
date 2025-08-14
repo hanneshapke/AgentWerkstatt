@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+
 class Message:
     """Represents a message in a conversation."""
+
     def __init__(self, role: str, content: str):
         self.role = role
         self.content = content
+
 
 class MemoryServiceProtocol(ABC):
     """Defines the interface for a memory service."""
@@ -25,6 +28,7 @@ class MemoryServiceProtocol(ABC):
     def store_conversation(self, user_input: str, assistant_response: str, user_id: str):
         """Stores a completed conversation turn in memory."""
         raise NotImplementedError
+
 
 class ObservabilityServiceProtocol(ABC):
     """Defines the interface for an observability and tracing service."""
@@ -51,12 +55,16 @@ class ObservabilityServiceProtocol(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def observe_llm_call(self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None) -> Any:
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
+    ) -> Any:
         """Starts observing an LLM call and returns a span/generation object."""
         raise NotImplementedError
 
     @abstractmethod
-    def update_llm_observation(self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None):
+    def update_llm_observation(
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
+    ):
         """Updates the LLM observation with the model's output and token usage."""
         raise NotImplementedError
 
@@ -70,6 +78,7 @@ class ObservabilityServiceProtocol(ABC):
         """Ensures all pending traces are sent to the observability backend."""
         raise NotImplementedError
 
+
 class ToolExecutorProtocol(ABC):
     """Defines the interface for a tool executor."""
 
@@ -77,6 +86,7 @@ class ToolExecutorProtocol(ABC):
     def execute_tool_calls(self, assistant_message_content: list) -> tuple[list[dict], list[str]]:
         """Parses a message, executes tool calls, and returns results."""
         raise NotImplementedError
+
 
 class ConversationHandlerProtocol(ABC):
     """Defines the interface for a conversation handler."""

@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any
+
 from dotenv import load_dotenv
 
 # Load environment variables from a .env file if it exists
 load_dotenv()
+
 
 class BaseLLM(ABC):
     """Abstract base class for all Large Language Models."""
@@ -33,6 +35,7 @@ class BaseLLM(ABC):
             ValueError: If the API key environment variable is not set.
         """
         import os
+
         if not os.getenv(api_key_name):
             raise ValueError(f"'{api_key_name}' environment variable is required but not set.")
 

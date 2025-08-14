@@ -1,7 +1,10 @@
 from collections.abc import Callable
+
 from absl import logging
+
 from ..interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
 from ..llms.base import BaseLLM
+
 
 class ConversationHandler:
     """Handles the conversation flow, including message processing, tool execution, and memory management."""
@@ -43,16 +46,18 @@ class ConversationHandler:
                 messages, assistant_message_content, tool_results
             )
             final_text = self._extract_text_from_response(final_response_content)
-            
+
             # Update history with the full exchange
-            self.llm.conversation_history.extend([
-                {"role": "user", "content": user_input},
-                {"role": "assistant", "content": assistant_message_content},
-                {"role": "user", "content": self._format_tool_results(tool_results)},
-                {"role": "assistant", "content": final_response_content},
-            ])
+            self.llm.conversation_history.extend(
+                [
+                    {"role": "user", "content": user_input},
+                    {"role": "assistant", "content": assistant_message_content},
+                    {"role": "user", "content": self._format_tool_results(tool_results)},
+                    {"role": "assistant", "content": final_response_content},
+                ]
+            )
             self._finalize_conversation(user_input, final_text)
-            
+
             return final_text
 
         except Exception as e:
@@ -73,10 +78,12 @@ class ConversationHandler:
 
     def _update_history_and_finalize(self, user_input, response_text, assistant_message_content):
         """Updates conversation history for non-tool responses and finalizes."""
-        self.llm.conversation_history.extend([
-            {"role": "user", "content": user_input},
-            {"role": "assistant", "content": assistant_message_content},
-        ])
+        self.llm.conversation_history.extend(
+            [
+                {"role": "user", "content": user_input},
+                {"role": "assistant", "content": assistant_message_content},
+            ]
+        )
         self._finalize_conversation(user_input, response_text)
 
     def _finalize_conversation(self, user_input: str, response_text: str):
@@ -113,7 +120,11 @@ class ConversationHandler:
     @staticmethod
     def _format_tool_results(tool_results: list[dict]) -> list[dict]:
         """Filters for valid tool result dictionaries."""
-        return [res for res in tool_results if isinstance(res, dict) and res.get("type") == "tool_result"]
+        return [
+            res
+            for res in tool_results
+            if isinstance(res, dict) and res.get("type") == "tool_result"
+        ]
 
     @staticmethod
     def _sanitize_conversation(messages: list[dict]) -> list[dict]:
