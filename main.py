@@ -1,6 +1,6 @@
 from absl import logging
 
-from interfaces import (
+from .interfaces import (
     ConversationHandlerProtocol,
     MemoryServiceProtocol,
     ObservabilityServiceProtocol,
