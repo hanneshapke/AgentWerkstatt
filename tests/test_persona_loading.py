@@ -57,7 +57,14 @@ def test_config_content():
         "model": "claude-3-sonnet-20240229",
         "tools_dir": "./tools",
         "verbose": False,
-        "personas": {"default": "test_persona.md"},
+        "personas": [
+            {
+                "id": "default",
+                "name": "SupportBot",
+                "description": "A persona for customer support.",
+                "file": "test_persona.md",
+            }
+        ],
         "default_persona": "default",
         "langfuse": {"enabled": False, "project_name": "test-project"},
         "memory": {
@@ -97,10 +104,12 @@ def test_load_persona_from_config(temp_config_files, test_persona_content):
     # Verify config loaded correctly
     assert config.model == "claude-3-sonnet-20240229"
 
-    # Verify persona content was loaded into the personas dictionary
-    assert config.personas["default"] == test_persona_content.strip()
-    assert "Customer Support Agent" in config.personas["default"]
-    assert "SupportBot" in config.personas["default"]
+    # Verify persona content was loaded into the personas list
+    default_persona = next((p for p in config.personas if p.id == "default"), None)
+    assert default_persona is not None
+    assert default_persona.file == test_persona_content.strip()
+    assert "Customer Support Agent" in default_persona.file
+    assert "SupportBot" in default_persona.file
 
 
 def test_system_prompt_generation_with_persona(temp_config_files, test_persona_content):
@@ -120,9 +129,12 @@ def test_system_prompt_generation_with_persona(temp_config_files, test_persona_c
 
     mock_tools = [websearch_tool, calculator_tool]
 
+    default_persona = next((p for p in config.personas if p.id == "default"), None)
+    assert default_persona is not None
+
     # Create LLM with loaded persona
     llm = TestPersonaBaseLLM(
-        model_name=config.model, tools=mock_tools, persona=config.personas["default"]
+        model_name=config.model, tools=mock_tools, persona=default_persona.file
     )
 
     # Get the generated system prompt
@@ -138,8 +150,11 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     """Test custom system prompt template with loaded persona"""
     config = AgentConfig.from_yaml(temp_config_files["config_path"])
 
+    default_persona = next((p for p in config.personas if p.id == "default"), None)
+    assert default_persona is not None
+
     # Create LLM with loaded persona
-    llm = TestPersonaBaseLLM(model_name=config.model, tools=[], persona=config.personas["default"])
+    llm = TestPersonaBaseLLM(model_name=config.model, tools=[], persona=default_persona.file)
 
     # The persona is the template now
     custom_prompt = llm.persona
@@ -187,7 +202,14 @@ def test_persona_loading_with_different_encodings(test_config_content):
         persona_file = temp_path / "international_persona.md"
         persona_file.write_text(persona_content, encoding="utf-8")
 
-        test_config_content["personas"] = {"default": "international_persona.md"}
+        test_config_content["personas"] = [
+            {
+                "id": "default",
+                "name": "GlobalBot",
+                "description": "A persona for multilingual assistance.",
+                "file": "international_persona.md",
+            }
+        ]
         config_file = temp_path / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(test_config_content, f)
@@ -195,9 +217,12 @@ def test_persona_loading_with_different_encodings(test_config_content):
         # Load and verify
         config = AgentConfig.from_yaml(str(config_file))
 
-        assert "🌍" in config.personas["default"]
-        assert "Español" in config.personas["default"]
-        assert "中文" in config.personas["default"]
+        default_persona = next((p for p in config.personas if p.id == "default"), None)
+        assert default_persona is not None
+
+        assert "🌍" in default_persona.file
+        assert "Español" in default_persona.file
+        assert "中文" in default_persona.file
 
 
 if __name__ == "__main__":

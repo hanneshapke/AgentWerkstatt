@@ -2,7 +2,7 @@
 # Configuration file for the minimalistic agent framework
 
 # LLM Model Configuration
-model: "claude-sonnet-4-20250514"
+model: "claude-4-sonnet-20250514"
 
 # Tools Configuration
 tools_dir: "./tools"
@@ -22,4 +22,30 @@ memory:
   server_url: "http://localhost:8000"  # mem0 server endpoint
 
 personas:
-  default: "personas/databot.md"
+  - id: coder
+    name: "Coder"
+    description: "A persona specialized in writing and reviewing code."
+    file: "personas/coder.md"
+    # Persona-specific overrides
+    config:
+      llm: "claude-3-opus" # Use a specific model for this persona
+      temperature: 0.1
+
+  - id: researcher
+    name: "Researcher"
+    description: "A persona for conducting web research and summarizing findings."
+    file: "personas/researcher.md"
+    config:
+      # Give this persona specific tools by default
+      tools:
+        - "websearch"
+      llm: "gemini-1.5-pro"
+
+  - id: databot
+    name: "DataBot"
+    description: "A persona for data analysis and visualization."
+    file: "personas/databot.md"
+    config:
+      llm: "gemini-1.5-pro"
+
+default_persona: "databot"

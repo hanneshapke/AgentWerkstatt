@@ -45,13 +45,33 @@ AgentWerkstatt uses YAML configuration files for non-sensitive settings. The def
 
 ```yaml
 # LLM Model Configuration
-model: "claude-sonnet-4-20250514"
+model: "claude-4-sonnet-20250514"
 
 # Tools Configuration
 tools_dir: "./tools"
 
 # Logging Configuration
 verbose: true
+
+# Persona Configuration
+personas:
+  - id: databot
+    name: "DataBot"
+    description: "A persona for data analysis and visualization."
+    file: "personas/databot.md"
+    config:
+      llm: "gemini-1.5-pro"
+
+  - id: researcher
+    name: "Researcher"
+    description: "A persona for conducting web research and summarizing findings."
+    file: "personas/researcher.md"
+    config:
+      tools:
+        - "websearch"
+      llm: "gemini-1.5-pro"
+
+default_persona: "databot"
 
 # Memory Configuration (Optional)
 memory:
@@ -63,39 +83,34 @@ memory:
 langfuse:
   enabled: true  # Set to false to disable tracing
   project_name: "agentwerkstatt"
-
-# Agent Objective/System Prompt
-persona: |
-  You are a helpful assistant with web search capabilities.
-  You can search the web for current information and provide accurate, helpful responses.
-  Always be conversational and helpful in your responses.
 ```
 
 ### Configuration Options
 
 #### LLM Configuration
 
-- `model`: The LLM model to use (currently supports Claude models)
-- `persona`: System prompt/persona for the agent
+- `model`: The default LLM model to use.
 
 #### Tools Configuration
 
-- `tools_dir`: Directory containing tool modules (relative to project root)
+- `tools_dir`: Directory containing tool modules.
 
 #### Logging Configuration
 
-- `verbose`: Enable detailed logging output
+- `verbose`: Enable detailed logging output.
 
-#### Memory Configuration
+#### Persona Configuration
 
-- `memory.enabled`: Enable/disable mem0 memory integration
-- `memory.model_name`: LLM model for memory operations
-- `memory.server_url`: mem0 server endpoint URL
+- `personas`: A list of available personas.
+  - `id`: A unique identifier for the persona.
+  - `name`: A user-friendly name for the persona.
+  - `description`: A brief description of the persona's purpose.
+  - `file`: The path to the markdown file containing the persona's system prompt.
+  - `config`: (Optional) A dictionary of overrides for this persona.
+    - `llm`: Use a specific LLM model for this persona.
+    - `tools`: A list of specific tools to be available to this persona.
+- `default_persona`: The `id` of the persona to use by default.
 
-#### Langfuse Configuration
-
-- `langfuse.enabled`: Enable/disable Langfuse tracing
-- `langfuse.project_name`: Project name in Langfuse
 
 ## Memory Configuration
 
@@ -135,7 +150,7 @@ The memory system uses several components:
 ### Supported Models
 
 Currently supported Claude models:
-- `claude-sonnet-4-20250514` (default)
+- `claude-4-sonnet-20250514` (default)
 - `claude-haiku-3-20240307`
 - `claude-opus-3-20240229`
 
@@ -192,10 +207,9 @@ config = AgentConfig.from_yaml("config.yaml")
 
 # Or create programmatically
 config = AgentConfig(
-    model="claude-sonnet-4-20250514",
+    model="claude-4-sonnet-20250514",
     tools_dir="./tools",
     verbose=True,
-    persona="You are a helpful assistant with web search capabilities.",
     memory_enabled=True,
     langfuse_enabled=True
 )
@@ -220,6 +234,14 @@ model: "claude-haiku-3-20240307"
 tools_dir: "./custom_tools"
 verbose: false
 
+personas:
+  - id: research_assistant
+    name: "Research Assistant"
+    description: "A persona for academic research."
+    file: "personas/researcher.md"
+
+default_persona: "research_assistant"
+
 memory:
   enabled: true
   model_name: "gpt-4o"
@@ -227,10 +249,6 @@ memory:
 
 langfuse:
   enabled: false
-
-persona: |
-  You are a specialized research assistant.
-  Focus on providing detailed, accurate information with proper citations.
 ```
 
 ## Configuration Validation
@@ -291,7 +309,7 @@ You can extend base configurations:
 
 ```yaml
 # base.yaml
-model: "claude-sonnet-4-20250514"
+model: "claude-4-sonnet-20250514"
 tools_dir: "./tools"
 verbose: true
 
