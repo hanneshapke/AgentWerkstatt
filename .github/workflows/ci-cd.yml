@@ -39,9 +39,9 @@ jobs:
 
     - name: Check service status
       run: |
-        docker-compose -f third_party/docker-compose.yaml ps
+        docker compose -f third_party/docker-compose.yaml ps
         sleep 10 # Give services time to start
-        docker-compose -f third_party/docker-compose.yaml logs
+        docker compose -f third_party/docker-compose.yaml logs
 
     - name: Run linting with ruff
       run: |
@@ -73,7 +73,7 @@ jobs:
 
     - name: Stop services
       if: always()
-      run: docker-compose -f third_party/docker-compose.yaml down
+      run: docker compose -f third_party/docker-compose.yaml down
 
     - name: Upload coverage reports to Codecov
       if: matrix.python-version == '3.11'
