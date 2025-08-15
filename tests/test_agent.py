@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from agentwerkstatt.config import AgentConfig
+from agentwerkstatt.config import AgentConfig, PersonaConfig
 from agentwerkstatt.llms.mock import MockLLM
 from agentwerkstatt.main import Agent
 from agentwerkstatt.services.tool_executor import ToolExecutor
@@ -147,7 +147,14 @@ def mock_config(temp_tools_dir):
         model="claude-3-sonnet-20240229",
         tools_dir=temp_tools_dir,
         verbose=False,
-        personas={"default": "Test agent"},
+        personas=[
+            PersonaConfig(
+                id="default",
+                name="Test Agent",
+                description="A persona for testing.",
+                file="Test agent",
+            )
+        ],
         default_persona="default",
         langfuse_enabled=False,
         memory_enabled=False,
