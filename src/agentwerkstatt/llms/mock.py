@@ -26,6 +26,10 @@ class MockLLM(BaseLLM):
         self.response_index = 0
         self.observability_service = None
 
+    def set_persona(self, persona: str):
+        """Set the persona for the LLM"""
+        self.persona = persona
+
     def make_api_request(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """Mock API request that returns a predictable response."""
         # Check if this is a follow-up call after tool execution
@@ -80,6 +84,18 @@ class MockLLM(BaseLLM):
         response = self.make_api_request(messages)
         assistant_message = response.get("content", [])
         return messages, assistant_message
+
+    def query(self, prompt: str, context: str) -> str:
+        """
+        Sends a query to the language model and returns the response.
+        """
+        return "Mock query response"
+
+    def get_info(self) -> dict:
+        """
+        Returns information about the model.
+        """
+        return {"model": self.model_name}
 
     def clear_history(self) -> None:
         """Clear conversation history"""

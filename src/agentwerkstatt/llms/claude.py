@@ -44,6 +44,22 @@ class ClaudeLLM(BaseLLM):
         self.observability_service.update_llm_observation(llm_span, response_data)
         return response_data
 
+    def query(self, prompt: str, context: str) -> str:
+        """
+        Sends a query to the language model and returns the response.
+        """
+        messages = [{"role": "user", "content": f"{context}\n\n{prompt}"}]
+        response = self.make_api_request(messages)
+        if "error" in response:
+            return f"Error: {response['error']}"
+        return response.get("content", [])[0].get("text", "")
+
+    def get_info(self) -> dict:
+        """
+        Returns information about the model.
+        """
+        return {"model": self.model_name}
+
     def process_request(self, messages: list[dict]) -> tuple[list[dict], list[dict]]:
         """
         Processes a list of messages, sends them to the Claude API, and returns the conversation and assistant's response.

@@ -8,6 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
 from agentwerkstatt.config import AgentConfig
 from agentwerkstatt.llms.base import BaseLLM
@@ -30,6 +31,14 @@ class TestPersonaBaseLLM(BaseLLM):
     def set_persona(self, persona: str):
         """Mock set_persona for testing"""
         self.persona = persona
+
+    def query(self, prompt: str, context: str) -> str:
+        """Mock query for testing"""
+        return "Mock query response"
+
+    def get_info(self) -> dict:
+        """Mock get_info for testing"""
+        return {"model": self.model_name}
 
 
 @pytest.fixture
@@ -85,8 +94,13 @@ def temp_config_files(test_persona_content, test_config_content):
         persona_file = temp_path / "test_persona.md"
         persona_file.write_text(test_persona_content, encoding="utf-8")
 
+        # Create tools directory
+        tools_dir = temp_path / "tools"
+        tools_dir.mkdir()
+
         # Create config file
         config_file = temp_path / "config.yaml"
+        test_config_content["tools_dir"] = str(tools_dir)
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(test_config_content, f)
 
@@ -175,12 +189,15 @@ def test_missing_persona_section_raises_error():
             "tools_dir": "./tools",
             "verbose": False,
         }
+        tools_dir = temp_path / "tools"
+        tools_dir.mkdir()
+        config_content["tools_dir"] = str(tools_dir)
         config_file = temp_path / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(config_content, f)
 
-        # Verify that a ValueError is raised
-        with pytest.raises(ValueError, match="Configuration must contain a 'personas' section."):
+        # Verify that a ValidationError is raised
+        with pytest.raises(ValidationError):
             AgentConfig.from_yaml(str(config_file))
 
 
@@ -210,6 +227,9 @@ def test_persona_loading_with_different_encodings(test_config_content):
                 "file": "international_persona.md",
             }
         ]
+        tools_dir = temp_path / "tools"
+        tools_dir.mkdir()
+        test_config_content["tools_dir"] = str(tools_dir)
         config_file = temp_path / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(test_config_content, f)

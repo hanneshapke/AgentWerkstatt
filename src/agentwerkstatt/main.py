@@ -97,13 +97,13 @@ class Agent:
 
     def _create_memory_service(self) -> MemoryServiceProtocol:
         """Create memory service based on configuration"""
-        if self.config.memory_enabled:
+        if self.config.memory.enabled:
             return MemoryService(self.config)
         return NoOpMemoryService()
 
     def _create_observability_service(self) -> ObservabilityServiceProtocol:
         """Create observability service based on configuration"""
-        if self.config.langfuse_enabled:
+        if self.config.langfuse.enabled:
             return LangfuseService(self.config)
         return NoOpObservabilityService()
 
@@ -143,7 +143,7 @@ class Agent:
         # Start observing the request
         metadata = {
             "model": self.llm.model_name,
-            "project": self.config.langfuse_project_name,
+            "project": self.config.langfuse.project_name,
             "memory_enabled": self.memory_service.is_enabled,
             "session_id": current_session_id,
         }

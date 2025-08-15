@@ -9,6 +9,13 @@ class TestAgent(unittest.TestCase):
     def setUp(self):
         self.mock_config = MagicMock(spec=AgentConfig)
         self.mock_config.default_persona = "test"
+        self.mock_config.tools_dir = "tools"
+        self.mock_config.verbose = False
+        self.mock_config.model = "test-model"
+        self.mock_config.langfuse = MagicMock()
+        self.mock_config.langfuse.enabled = False
+        self.mock_config.memory = MagicMock()
+        self.mock_config.memory.enabled = False
         self.mock_config.personas = [
             MagicMock(id="test", file="test.md"),
             MagicMock(id="other", file="other.md"),

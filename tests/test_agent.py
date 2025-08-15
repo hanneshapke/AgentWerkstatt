@@ -156,8 +156,8 @@ def mock_config(temp_tools_dir):
             )
         ],
         default_persona="default",
-        langfuse_enabled=False,
-        memory_enabled=False,
+        langfuse={"enabled": False},
+        memory={"enabled": False},
     )
 
 
@@ -240,7 +240,7 @@ def test_observability_metadata(mock_config, mock_services):
     metadata = observed[1]
 
     assert metadata["model"] == mock_services["llm"].model_name
-    assert metadata["project"] == mock_config.langfuse_project_name
+    assert metadata["project"] == mock_config.langfuse.project_name
     assert metadata["memory_enabled"] == mock_services["memory_service"].is_enabled
 
 
