@@ -56,7 +56,7 @@ Configuration class for Agent initialization.
 class AgentConfig:
     def __init__(
         self,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-4-sonnet-20250514",
         tools_dir: str = "./tools",
         verbose: bool = True,
         persona: str = "",
@@ -152,7 +152,7 @@ class ClaudeLLM(BaseLLM):
 
 #### Supported Models
 
-- `claude-sonnet-4-20250514` (default)
+- `claude-4-sonnet-20250514` (default)
 - `claude-haiku-3-20240307`
 - `claude-opus-3-20240229`
 

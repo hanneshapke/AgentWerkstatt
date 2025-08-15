@@ -172,10 +172,9 @@ agent = Agent(config)
 
 # Or customize the configuration
 config = AgentConfig(
-    model="claude-sonnet-4-20250514",
+    model="claude-4-sonnet-20250514",
     tools_dir="./tools",
     verbose=True,
-    persona="You are a helpful assistant with web search capabilities."
 )
 agent = Agent(config)
 
@@ -223,7 +222,7 @@ Basic configuration in `config.yaml`:
 
 ```yaml
 # LLM Model Configuration
-model: "claude-sonnet-4-20250514"
+model: "claude-4-sonnet-20250514"
 
 # Tools Configuration
 tools_dir: "./tools"
@@ -231,11 +230,14 @@ tools_dir: "./tools"
 # Logging Configuration
 verbose: true
 
-# Agent Objective/System Prompt
-persona: |
-  You are a helpful assistant with web search capabilities.
-  You can search the web for current information and provide accurate, helpful responses.
-  Always be conversational and helpful in your responses.
+# Persona Configuration
+personas:
+  - id: databot
+    name: "DataBot"
+    description: "A persona for data analysis and visualization."
+    file: "personas/databot.md"
+
+default_persona: "databot"
 ```
 
 **Environment Variables:**
