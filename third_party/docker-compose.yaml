@@ -5,18 +5,10 @@
 # External connections from other machines will not be able to reach these services directly.
 services:
   # mem0 memory management system - built from official repository with PostgreSQL support
-  mem0-base:
-    build:
-      context: https://github.com/mem0ai/mem0.git
-      dockerfile: server/dev.Dockerfile
-    image: mem0-base:latest
-
   mem0:
     build:
       context: .
       dockerfile: Dockerfile.mem0
-      args:
-        MEM0_IMAGE: mem0-base:latest
     container_name: third_party_mem0
     restart: unless-stopped
     networks:
@@ -32,8 +24,6 @@ services:
       - mem0_data:/app/.mem0
       - ./mem0-config.yaml:/app/config.yaml:ro
     depends_on:
-      mem0-base:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       neo4j:
