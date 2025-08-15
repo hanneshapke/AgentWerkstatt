@@ -203,7 +203,18 @@ filterwarnings = [
     "ignore::DeprecationWarning",
 ]
 
-
+[dependency-groups]
+dev = [
+    "mypy>=1.17.0",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+    "ruff>=0.12.5",
+    "setuptools>=61.0",
+    "setuptools-scm>=8.3.1",
+    "types-pyyaml>=6.0.12.20250516",
+]
 
 [tool.coverage.run]
 branch = true

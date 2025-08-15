@@ -18,7 +18,7 @@ wheels = [
 
 [[package]]
 name = "agentwerkstatt"
-version = "0.1.15.post12"
+version = "0.1.15.post13"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },
@@ -52,6 +52,19 @@ tracing = [
     { name = "langfuse" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "ruff" },
+    { name = "setuptools" },
+    { name = "setuptools-scm" },
+    { name = "types-pyyaml" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "absl-py", specifier = ">=1.0.0" },
@@ -73,6 +86,19 @@ requires-dist = [
     { name = "setuptools", marker = "extra == 'dev'", specifier = ">=61.0" },
     { name = "setuptools-scm", marker = "extra == 'dev'", specifier = ">=8.3.1" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.12.20250516" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.17.0" },
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "ruff", specifier = ">=0.12.5" },
+    { name = "setuptools", specifier = ">=61.0" },
+    { name = "setuptools-scm", specifier = ">=8.3.1" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250516" },
 ]
 
 [[package]]
