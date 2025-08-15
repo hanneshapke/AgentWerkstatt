@@ -69,6 +69,9 @@ class TestAgentEndToEnd(unittest.TestCase):
         with open(config_path) as f:
             config_data = yaml.safe_load(f)
         config_data["tools_dir"] = self.tools_dir
+        # Adapt to new personas structure
+        if "persona" in config_data:
+            config_data["personas"] = {"default": config_data.pop("persona")}
         # Remove unexpected keys
         config_data.pop("langfuse", None)
         config_data.pop("memory", None)
@@ -97,19 +100,27 @@ class TestAgentEndToEnd(unittest.TestCase):
     def test_agent_persona_in_system_prompt(self):
         """Test that the persona from test_agent.md is properly loaded and used"""
         # 1. Setup
-        # Load configuration from test files
+        # Load configuration from test files using from_yaml to properly load persona content
         config_path = os.path.join(self.test_dir, "test_config.yaml")
+        # Temporarily modify the config to use correct tools_dir
         with open(config_path) as f:
             config_data = yaml.safe_load(f)
         config_data["tools_dir"] = self.tools_dir
-        # Remove unexpected keys
-        config_data.pop("langfuse", None)
-        config_data.pop("memory", None)
-        agent_config = AgentConfig(**config_data)
+
+        # Write temporary config file with updated tools_dir
+        temp_config_path = os.path.join(self.test_dir, "temp_test_config.yaml")
+        with open(temp_config_path, "w") as f:
+            yaml.dump(config_data, f)
+
+        # Use from_yaml to properly load persona content
+        agent_config = AgentConfig.from_yaml(temp_config_path)
+
+        # Clean up temporary file
+        os.remove(temp_config_path)
 
         # 2. Verification - Check that persona was loaded from test_agent.md
-        with open(os.path.join(self.test_dir, agent_config.persona)) as f:
-            persona_content = f.read()
+        # Access the default persona content directly from the loaded personas
+        persona_content = agent_config.personas.get("default", "")
         self.assertIn("TestBot", persona_content)
         self.assertIn("Testing Assistant", persona_content)
         self.assertIn("simple, direct testing agent", persona_content)

@@ -1,0 +1,15 @@
+# Example Multi-Agent Configuration
+model: "claude-3-5-sonnet-20240620"
+tools_dir: "tools" # Point to the main tools directory to access the delegate tool
+verbose: false
+
+personas:
+  planner: "personas/planner.md"
+  joke_writer: "personas/joke_writer.md"
+
+default_persona: "planner"
+
+# Optional: Langfuse configuration for observability
+# langfuse:
+#   enabled: false
+#   project_name: "multi-agent-example"

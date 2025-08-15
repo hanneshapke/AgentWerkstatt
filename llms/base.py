@@ -24,6 +24,10 @@ class BaseLLM(ABC):
         self.conversation_history: list[dict] = []
         self.timeout = 30.0
 
+    def set_persona(self, persona: str):
+        """Set the persona for the LLM"""
+        raise NotImplementedError("Subclasses must implement this method")
+
     def clear_history(self):
         """Clears the conversation history."""
         self.conversation_history = []

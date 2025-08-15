@@ -136,7 +136,8 @@ def mock_config():
         model="claude-3-sonnet-20240229",
         tools_dir="tools",
         verbose=False,
-        persona="Test agent",
+        personas={"default": "Test agent"},
+        default_persona="default",
         langfuse_enabled=False,
         memory_enabled=False,
     )

@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from config import AgentConfig
 
 
 class Message:
@@ -105,4 +108,13 @@ class ConversationHandlerProtocol(ABC):
     @abstractmethod
     def conversation_length(self) -> int:
         """Returns the number of messages in the history."""
+        raise NotImplementedError
+
+
+class ConfigValidatorProtocol(ABC):
+    """Defines the interface for configuration validators."""
+
+    @abstractmethod
+    def validate(self, config: "AgentConfig", config_file_path: str = None) -> list[str]:
+        """Validate configuration and return list of error messages."""
         raise NotImplementedError

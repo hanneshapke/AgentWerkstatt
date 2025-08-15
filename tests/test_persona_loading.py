@@ -27,6 +27,10 @@ class TestPersonaBaseLLM(BaseLLM):
         """Mock process request for testing"""
         return messages, ["Mock response"]
 
+    def set_persona(self, persona: str):
+        """Mock set_persona for testing"""
+        self.persona = persona
+
 
 @pytest.fixture
 def test_persona_content():
@@ -53,7 +57,8 @@ def test_config_content():
         "model": "claude-3-sonnet-20240229",
         "tools_dir": "./tools",
         "verbose": False,
-        "persona": "test_persona.md",
+        "personas": {"default": "test_persona.md"},
+        "default_persona": "default",
         "langfuse": {"enabled": False, "project_name": "test-project"},
         "memory": {
             "enabled": False,
@@ -92,10 +97,10 @@ def test_load_persona_from_config(temp_config_files, test_persona_content):
     # Verify config loaded correctly
     assert config.model == "claude-3-sonnet-20240229"
 
-    # Verify persona content was loaded into persona field
-    assert config.persona == test_persona_content.strip()
-    assert "Customer Support Agent" in config.persona
-    assert "SupportBot" in config.persona
+    # Verify persona content was loaded into the personas dictionary
+    assert config.personas["default"] == test_persona_content.strip()
+    assert "Customer Support Agent" in config.personas["default"]
+    assert "SupportBot" in config.personas["default"]
 
 
 def test_system_prompt_generation_with_persona(temp_config_files, test_persona_content):
@@ -116,7 +121,9 @@ def test_system_prompt_generation_with_persona(temp_config_files, test_persona_c
     mock_tools = [websearch_tool, calculator_tool]
 
     # Create LLM with loaded persona
-    llm = TestPersonaBaseLLM(model_name=config.model, tools=mock_tools, persona=config.persona)
+    llm = TestPersonaBaseLLM(
+        model_name=config.model, tools=mock_tools, persona=config.personas["default"]
+    )
 
     # Get the generated system prompt
     system_prompt = llm.persona
@@ -132,7 +139,7 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     config = AgentConfig.from_yaml(temp_config_files["config_path"])
 
     # Create LLM with loaded persona
-    llm = TestPersonaBaseLLM(model_name=config.model, tools=[], persona=config.persona)
+    llm = TestPersonaBaseLLM(model_name=config.model, tools=[], persona=config.personas["default"])
 
     # The persona is the template now
     custom_prompt = llm.persona
@@ -142,17 +149,12 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     assert "SupportBot" in custom_prompt
 
 
-def test_fallback_to_default_persona_file():
-    """Test fallback to default agent.md when persona is not specified"""
+def test_missing_persona_section_raises_error():
+    """Test that a ValueError is raised when the personas section is missing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        # Create default agent.md file
-        default_persona_content = "# Default Agent\nI am a helpful assistant."
-        agent_md_file = temp_path / "agent.md"
-        agent_md_file.write_text(default_persona_content, encoding="utf-8")
-
-        # Create config without persona field
+        # Create config without personas section
         config_content = {
             "model": "claude-3-sonnet-20240229",
             "tools_dir": "./tools",
@@ -162,11 +164,9 @@ def test_fallback_to_default_persona_file():
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(config_content, f)
 
-        # Load config - should fall back to agent.md
-        config = AgentConfig.from_yaml(str(config_file))
-
-        assert config.persona == default_persona_content.strip()
-        assert "Default Agent" in config.persona
+        # Verify that a ValueError is raised
+        with pytest.raises(ValueError, match="Configuration must contain a 'personas' section."):
+            AgentConfig.from_yaml(str(config_file))
 
 
 def test_persona_loading_with_different_encodings(test_config_content):
@@ -187,7 +187,7 @@ def test_persona_loading_with_different_encodings(test_config_content):
         persona_file = temp_path / "international_persona.md"
         persona_file.write_text(persona_content, encoding="utf-8")
 
-        test_config_content["persona"] = "international_persona.md"
+        test_config_content["personas"] = {"default": "international_persona.md"}
         config_file = temp_path / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(test_config_content, f)
@@ -195,9 +195,9 @@ def test_persona_loading_with_different_encodings(test_config_content):
         # Load and verify
         config = AgentConfig.from_yaml(str(config_file))
 
-        assert "🌍" in config.persona
-        assert "Español" in config.persona
-        assert "中文" in config.persona
+        assert "🌍" in config.personas["default"]
+        assert "Español" in config.personas["default"]
+        assert "中文" in config.personas["default"]
 
 
 if __name__ == "__main__":

@@ -15,10 +15,17 @@ class ClaudeLLM(BaseLLM):
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self._validate_api_key("ANTHROPIC_API_KEY")
 
-    def make_api_request(self, messages: list[dict]) -> dict:
-        """
-        Makes a request to the Claude API with the given messages and returns the response.
-        """
+    def set_persona(self, persona: str):
+        """Set the persona for the LLM"""
+        self.persona = persona
+
+    @property
+    def system_prompt(self) -> str:
+        """Get the system prompt"""
+        return self._format_system_prompt()
+
+    def make_api_request(self, messages: list[dict] = None) -> dict:
+        """Make a request to the Claude API"""
         if not messages:
             return {"error": "No messages provided."}
 
