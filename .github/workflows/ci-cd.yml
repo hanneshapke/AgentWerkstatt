@@ -35,7 +35,7 @@ jobs:
         uv pip install -e ".[observability,memory]"
 
     - name: Start services
-      run: docker-compose -f third_party/docker-compose.yaml up -d
+      run: docker compose -f third_party/docker-compose.yaml up -d
 
     - name: Check service status
       run: |
