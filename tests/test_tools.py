@@ -6,6 +6,7 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
+
 from agentwerkstatt.services.tool_executor import ToolExecutor
 from agentwerkstatt.tools.base import BaseTool
 from agentwerkstatt.tools.discovery import ToolRegistry

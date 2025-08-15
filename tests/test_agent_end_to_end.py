@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import Mock
 
 import yaml
+
 from agentwerkstatt.config import AgentConfig
 from agentwerkstatt.llms.mock import MockLLM
 from agentwerkstatt.main import Agent

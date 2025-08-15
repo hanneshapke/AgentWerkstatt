@@ -8,6 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
+
 from agentwerkstatt.config import AgentConfig
 from agentwerkstatt.llms.base import BaseLLM
 
