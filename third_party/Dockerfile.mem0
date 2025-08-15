@@ -1,5 +1,5 @@
 # Extend the official mem0 build with PostgreSQL support
-ARG MEM0_IMAGE=mem0-base
+ARG MEM0_IMAGE=mem0-base:latest
 FROM ${MEM0_IMAGE}
 
 # Install PostgreSQL client libraries and psycopg2

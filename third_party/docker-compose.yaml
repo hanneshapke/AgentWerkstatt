@@ -9,14 +9,14 @@ services:
     build:
       context: https://github.com/mem0ai/mem0.git
       dockerfile: server/dev.Dockerfile
-    image: mem0-base
+    image: mem0-base:latest
 
   mem0:
     build:
       context: .
       dockerfile: Dockerfile.mem0
       args:
-        MEM0_IMAGE: mem0-base
+        MEM0_IMAGE: mem0-base:latest
     container_name: third_party_mem0
     restart: unless-stopped
     networks:
