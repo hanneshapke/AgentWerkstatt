@@ -63,26 +63,17 @@ Repository = "https://github.com/hanneshapke/agentwerkstatt.git"
 "Discussions" = "https://github.com/hanneshapke/agentwerkstatt/discussions"
 "Contributing" = "https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md"
 
-[tool.setuptools]
-packages = [
-    "agentwerkstatt",
-    "agentwerkstatt.llms",
-    "agentwerkstatt.services",
-    "agentwerkstatt.tools"
-]
-
-[tool.setuptools.package-dir]
-"agentwerkstatt" = "."
-"agentwerkstatt.llms" = "llms"
-"agentwerkstatt.services" = "services"
-"agentwerkstatt.tools" = "tools"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+exclude = ["tests*"]
 
 [tool.setuptools.package-data]
 agentwerkstatt = ["**/config.yaml", "**/docker-compose.yaml", "**/Dockerfile*", "**/*.md"]
 
 [tool.setuptools_scm]
 # Enable setuptools-scm for dynamic versioning from git tags
-write_to = "_version.py"
+# Note: No need for write_to when using importlib.metadata
 # Use version format without local identifiers for test-pypi compatibility
 version_scheme = "post-release"
 local_scheme = "no-local-version"
@@ -190,7 +181,7 @@ disallow_untyped_defs = false
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
-python_functions = "test_*"
+python_functions = "test_"
 addopts = [
     "-v",
     "--tb=short",

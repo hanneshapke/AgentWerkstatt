@@ -3,15 +3,20 @@ from typing import TYPE_CHECKING
 
 from absl import logging
 
-from ..interfaces import MemoryServiceProtocol, ObservabilityServiceProtocol, ToolExecutorProtocol
-from ..llms.claude import ClaudeLLM
+from interfaces import (
+    ConversationHandlerProtocol,
+    MemoryServiceProtocol,
+    ObservabilityServiceProtocol,
+    ToolExecutorProtocol,
+)
+from llms.claude import ClaudeLLM
 
 if TYPE_CHECKING:
     from ..agent import Agent
 
 
-class ConversationHandler:
-    """Handles conversation flow and message processing"""
+class ConversationHandler(ConversationHandlerProtocol):
+    """Handles the conversation flow, including message processing, tool execution, and memory management."""
 
     def __init__(
         self,
@@ -27,11 +32,7 @@ class ConversationHandler:
         self.memory_service = memory_service
         self.observability_service = observability_service
         self.tool_executor = tool_executor
-        self.user_id_provider = user_id_provider or self._default_user_id_provider
-
-    def _default_user_id_provider(self) -> str:
-        """Default user ID provider"""
-        return "default_user"
+        self.user_id_provider = user_id_provider or (lambda: "default_user")
 
     def _prepend_persona_to_response(self, response_text: str) -> str:
         """Prepend the active persona name to the response text."""
@@ -61,22 +62,27 @@ class ConversationHandler:
         return new_content
 
     def process_message(self, user_input: str, enhanced_input: str) -> str:
-        """Process a user message and return the agent's response"""
+        """
+        Processes a user's message, orchestrates LLM calls and tool execution, and returns the final response.
+        """
         try:
-            # Get LLM response
+            # Get initial response from LLM
             messages = self.llm.conversation_history + [{"role": "user", "content": enhanced_input}]
-            messages, assistant_message = self.llm.process_request(messages)
+            _, assistant_message_content = self.llm.process_request(messages)
 
-            # Execute any tool calls
-            tool_results, text_parts = self._execute_tools(assistant_message)
+            # Execute tools if requested
+            tool_results, _ = self.tool_executor.execute_tool_calls(assistant_message_content)
 
-            # Generate final response
-            if tool_results:
-                return self._handle_tool_response(
-                    messages, assistant_message, tool_results, user_input
-                )
+            if not tool_results:
+                # No tools used, handle as a direct text response
+                final_text = self._extract_text_from_response(assistant_message_content)
+                self._update_history_and_finalize(user_input, final_text, assistant_message_content)
+                return final_text
             else:
-                return self._handle_text_response(assistant_message, user_input, text_parts)
+                # Tools were used, handle tool response
+                return self._handle_tool_response(
+                    messages, assistant_message_content, tool_results, user_input
+                )
 
         except Exception as e:
             logging.error(f"Critical error in message processing: {e}")
@@ -124,6 +130,7 @@ class ConversationHandler:
             self._update_conversation_history(
                 user_input, assistant_message, tool_results, final_response["content"]
             )
+            final_text = self._extract_text_from_response(final_text_with_persona)
 
             # Handle storage and observability
             self._finalize_conversation(user_input, final_text_with_persona)
@@ -131,10 +138,9 @@ class ConversationHandler:
             return final_text_with_persona
 
         except Exception as e:
-            error_msg = f"Error handling tool response: {str(e)}"
-            logging.error(error_msg)
-            self._update_observability_with_error(error_msg)
-            return f"❌ {error_msg}"
+            logging.error(f"Error processing message: {e}", exc_info=True)
+            self._update_observability_with_error(str(e))
+            return "I apologize, but I encountered an error. Please try again."
 
     def _handle_text_response(
         self, assistant_message: list[dict], user_input: str, text_parts: list[str]
@@ -246,93 +252,64 @@ class ConversationHandler:
             ]
         )
 
-    def _finalize_conversation(self, user_input: str, response_text: str) -> None:
-        """Handle memory storage and observability"""
-        # Store in memory
-        self._store_in_memory(user_input, response_text)
-
-        # Update observability
-        self.observability_service.update_observation(response_text)
-        self.observability_service.flush_traces()
-
-    def _store_in_memory(self, user_input: str, response_text: str) -> None:
-        """Store conversation in memory with error handling"""
+    def _finalize_conversation(self, user_input: str, response_text: str):
+        """Stores conversation in memory and updates observability."""
         try:
             user_id = self.user_id_provider()
             self.memory_service.store_conversation(user_input, response_text, user_id)
-            logging.debug("Memory storage completed")
         except Exception as e:
-            logging.warning(f"Failed to store in memory: {e}")
+            logging.warning(f"Failed to store conversation in memory: {e}")
 
-    def _update_observability_with_error(self, error_msg: str) -> None:
-        """Update observability with error information"""
-        try:
-            self.observability_service.update_observation({"error": error_msg})
-            self.observability_service.flush_traces()
-        except Exception as e:
-            logging.warning(f"Failed to update observability: {e}")
-
-    def _cleanup_conversation_on_error(self) -> None:
-        """Clean up conversation history when API errors occur to prevent corruption"""
-        try:
-            # Find the last assistant message with unmatched tool_use blocks
-            for i in range(len(self.llm.conversation_history) - 1, -1, -1):
-                message = self.llm.conversation_history[i]
-                if (
-                    message.get("role") == "assistant"
-                    and isinstance(message.get("content"), list)
-                    and any(block.get("type") == "tool_use" for block in message["content"])
-                ):
-                    # Check if there's a corresponding tool_result in the next message
-                    if (
-                        i + 1 < len(self.llm.conversation_history)
-                        and self.llm.conversation_history[i + 1].get("role") == "user"
-                    ):
-                        next_content = self.llm.conversation_history[i + 1].get("content", [])
-                        if isinstance(next_content, list) and any(
-                            block.get("type") == "tool_result" for block in next_content
-                        ):
-                            continue  # This tool_use has results, keep looking
-
-                    # Found unmatched tool_use - remove from this point
-                    logging.warning(
-                        f"Cleaning up conversation history from message {i} due to unmatched tool_use"
-                    )
-                    self.llm.conversation_history = self.llm.conversation_history[:i]
-                    break
-
-        except Exception as e:
-            logging.error(f"Error cleaning conversation history: {e}")
-            # Fallback: keep only the first message (user input)
-            if self.llm.conversation_history:
-                self.llm.conversation_history = self.llm.conversation_history[:1]
-
-    def _create_error_response(self, user_input: str, error: str) -> str:
-        """Create fallback response for critical errors"""
-        fallback_message = "I apologize, but I encountered a system error while processing your request. Please try again later."
-        logging.error(f"Critical error for input '{user_input}': {error}")
-
-        self._update_observability_with_error(error)
-        return fallback_message
+        self.observability_service.update_observation(response_text)
+        self.observability_service.flush_traces()
 
     def enhance_input_with_memory(self, user_input: str) -> str:
-        """Enhance user input with relevant memories"""
+        """Enhances user input with relevant memories."""
         try:
             user_id = self.user_id_provider()
             memory_context = self.memory_service.retrieve_memories(user_input, user_id)
-
-            if memory_context:
-                return f"{memory_context}\nUser query: {user_input}"
-            return user_input
+            return f"{memory_context}\n\nUser query: {user_input}" if memory_context else user_input
         except Exception as e:
             logging.warning(f"Failed to enhance input with memory: {e}")
             return user_input
 
-    def clear_history(self) -> None:
-        """Clear conversation history"""
+    def _update_observability_with_error(self, error_msg: str):
+        """Updates observability with error information."""
+        self.observability_service.update_observation({"error": error_msg})
+        self.observability_service.flush_traces()
+
+    def _create_error_response(self, user_input: str, error_msg: str) -> str:
+        """Create a formatted error response."""
+        response = f"❌ Error processing request: {error_msg}"
+        try:
+            self._finalize_conversation(user_input, response)
+        except Exception as e:
+            logging.warning(f"Failed to finalize error conversation: {e}")
+        return response
+
+    def _update_history_and_finalize(
+        self, user_input: str, response_text: str, assistant_message: list[dict]
+    ):
+        """Update conversation history and finalize the conversation."""
+        try:
+            # Update conversation history
+            self.llm.conversation_history.extend(
+                [
+                    {"role": "user", "content": user_input},
+                    {"role": "assistant", "content": assistant_message},
+                ]
+            )
+
+            # Finalize conversation
+            self._finalize_conversation(user_input, response_text)
+        except Exception as e:
+            logging.error(f"Error updating history and finalizing: {e}")
+
+    def clear_history(self):
+        """Clears the conversation history."""
         self.llm.clear_history()
 
     @property
     def conversation_length(self) -> int:
-        """Get current conversation length"""
+        """Returns the number of messages in the conversation history."""
         return len(self.llm.conversation_history)

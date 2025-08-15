@@ -5,17 +5,27 @@ This package provides a simple framework for building AI agents with tool capabi
 memory, and observability features.
 """
 
-from ._version import __version__
-from .agent import Agent
-from .config import AgentConfig, ConfigManager, ConfigValidator
+try:
+    from importlib.metadata import version
 
-__all__ = [
-    "Agent",
-    "AgentConfig",
-    "ConfigManager",
-    "ConfigValidator",
-    "__version__",
-]
+    __version__ = version("agentwerkstatt")
+except Exception:
+    # Fallback for development/testing
+    __version__ = "0.1.0-dev"
+
+# Import classes when used as a package
+try:
+    from config import AgentConfig
+    from main import Agent
+
+    __all__ = [
+        "Agent",
+        "AgentConfig",
+        "__version__",
+    ]
+except ImportError:
+    # During testing, these imports might fail
+    __all__ = ["__version__"]
 
 # Package metadata
 __author__ = "Hannes Hapke"

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from .interfaces import ConfigValidatorProtocol
+from interfaces import ConfigValidatorProtocol
 
 
 @dataclass
@@ -64,14 +64,14 @@ class AgentConfig:
                 data["personas"] = {"default": cls.from_persona_file("agents.md")}
 
         # Handle nested langfuse config - flatten it into the main config
-        langfuse_data = data.pop("langfuse", {})
-        if langfuse_data:
+        if "langfuse" in data:
+            langfuse_data = data.pop("langfuse", {})
             data["langfuse_enabled"] = langfuse_data.get("enabled", False)
             data["langfuse_project_name"] = langfuse_data.get("project_name", "agentwerkstatt")
 
         # Handle nested memory config - flatten it into the main config
-        memory_data = data.pop("memory", {})
-        if memory_data:
+        if "memory" in data:
+            memory_data = data.pop("memory", {})
             data["memory_enabled"] = memory_data.get("enabled", False)
             data["memory_model_name"] = memory_data.get("model_name", "gpt-4o-mini")
             data["memory_server_url"] = memory_data.get("server_url", "http://localhost:8000")

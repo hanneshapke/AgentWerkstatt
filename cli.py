@@ -4,8 +4,8 @@ import uuid
 
 from absl import app, flags, logging
 
-from .agent import Agent
-from .config import ConfigManager
+from config import AgentConfig
+from main import Agent
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "config.yaml", "Path to the agent configuration file.")
@@ -110,8 +110,7 @@ def main(argv):
 
     try:
         # Load and validate configuration
-        config_manager = ConfigManager()
-        config = config_manager.load_and_validate(FLAGS.config)
+        config = AgentConfig.from_yaml(FLAGS.config)
         # Generate or use provided session ID
         session_id = FLAGS.session_id or str(uuid.uuid4())
 
