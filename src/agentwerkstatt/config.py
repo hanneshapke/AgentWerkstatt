@@ -1,165 +1,143 @@
 import os
-from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ClassVar
 
 import yaml
+from pydantic import BaseModel, Field, DirectoryPath, field_validator, model_validator
+from pydantic_settings import BaseSettings
 
-from .interfaces import ConfigValidatorProtocol
 
-
-@dataclass
-class PersonaConfig:
+class PersonaConfig(BaseModel):
     """Configuration for a single persona."""
 
     id: str
     name: str
     description: str
     file: str
-    config: dict = field(default_factory=dict)
+    config: dict = Field(default_factory=dict)
 
 
-@dataclass
-class AgentConfig:
-    """Configuration for the Agent"""
+class LangfuseConfig(BaseModel):
+    """Configuration for Langfuse."""
 
-    model: str = ""
-    tools_dir: str = ""
+    enabled: bool = False
+    project_name: str = "agentwerkstatt"
+
+    @model_validator(mode="after")
+    def check_env_vars(self) -> "LangfuseConfig":
+        if self.enabled:
+            if not os.getenv("LANGFUSE_PUBLIC_KEY"):
+                raise ValueError(
+                    "LANGFUSE_PUBLIC_KEY environment variable is required when langfuse is enabled."
+                )
+            if not os.getenv("LANGFUSE_SECRET_KEY"):
+                raise ValueError(
+                    "LANGFUSE_SECRET_KEY environment variable is required when langfuse is enabled."
+                )
+        return self
+
+
+class MemoryConfig(BaseModel):
+    """Configuration for Memory."""
+
+    enabled: bool = False
+    model_name: str = "gpt-4o-mini"
+    server_url: str = "http://localhost:8000"
+
+
+class AgentConfig(BaseSettings):
+    """Configuration for the Agent."""
+
+    model: str
+    tools_dir: DirectoryPath
     verbose: bool = False
-    personas: list[PersonaConfig] = field(default_factory=list)
+    personas: list[PersonaConfig] = Field(default_factory=list)
     default_persona: str = "default"
-    langfuse_enabled: bool = False
-    langfuse_project_name: str = "agentwerkstatt"
-    memory_enabled: bool = False
-    memory_model_name: str = "gpt-4o-mini"
-    memory_server_url: str = "http://localhost:8000"
+    langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig)
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    _config_dir: ClassVar[Path] = Path.cwd()
 
+    @field_validator("personas", mode="before")
     @classmethod
-    def from_persona_file(cls, persona_file: str) -> str:
-        """Load persona content from a file."""
-        with open(persona_file, encoding="utf-8") as f:
-            return f.read().strip()
+    def load_persona_files(cls, personas_data: list[dict]) -> list[dict]:
+        """Load persona content from files."""
+        if not isinstance(personas_data, list):
+            return personas_data
+
+        loaded_personas = []
+        for persona_data in personas_data:
+            if not isinstance(persona_data, dict):
+                loaded_personas.append(persona_data)
+                continue
+
+            persona_file = persona_data.get("file")
+            if not persona_file:
+                raise ValueError("Persona configuration must have a 'file' key.")
+
+            if not os.path.isabs(persona_file):
+                persona_file_path = cls._config_dir / persona_file
+            else:
+                persona_file_path = Path(persona_file)
+
+            if not persona_file_path.exists():
+                raise FileNotFoundError(
+                    f"Persona file not found for '{persona_data.get('id', 'unknown')}': {persona_file_path}"
+                )
+
+            with open(persona_file_path, encoding="utf-8") as f:
+                persona_data["file"] = f.read().strip()
+            loaded_personas.append(persona_data)
+        return loaded_personas
+
+    @model_validator(mode="after")
+    def check_default_persona(self) -> "AgentConfig":
+        # If default_persona is specified but no personas are defined, raise an error
+        if self.default_persona and not self.personas:
+            raise ValueError(
+                "Configuration must contain a 'personas' section when default_persona is specified."
+            )
+
+        # If personas exist, ensure the default_persona exists in the list
+        if self.personas and self.default_persona not in [p.id for p in self.personas]:
+            raise ValueError(
+                f"Default persona '{self.default_persona}' not found in loaded personas."
+            )
+        return self
 
     @classmethod
     def from_yaml(cls, file_path: str) -> "AgentConfig":
-        """Load configuration from YAML file"""
-        with open(file_path) as f:
+        """Load configuration from YAML file."""
+        config_path = Path(file_path)
+        if not config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found at {file_path}")
+
+        cls._config_dir = config_path.parent
+
+        with open(file_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
-        config_dir = Path(file_path).parent
-
-        # Load personas from the 'personas' section.
-        if "personas" in data:
-            loaded_personas = []
-            for persona_data in data["personas"]:
-                persona_file = persona_data["file"]
-                if not os.path.isabs(persona_file):
-                    persona_file = config_dir / persona_file
-                if Path(persona_file).exists():
-                    persona_content = cls.from_persona_file(str(persona_file))
-                    persona_data["file"] = persona_content
-                    loaded_personas.append(PersonaConfig(**persona_data))
-                else:
-                    # Raise an error if a persona file is not found.
-                    raise FileNotFoundError(
-                        f"Persona file not found for '{persona_data['id']}': {persona_file}"
-                    )
-            data["personas"] = loaded_personas
-        else:
-            # If no personas are defined, raise an error.
-            raise ValueError("Configuration must contain a 'personas' section.")
-
-        # Handle nested langfuse config - flatten it into the main config
-        if "langfuse" in data:
-            langfuse_data = data.pop("langfuse", {})
-            data["langfuse_enabled"] = langfuse_data.get("enabled", False)
-            data["langfuse_project_name"] = langfuse_data.get("project_name", "agentwerkstatt")
-
-        # Handle nested memory config - flatten it into the main config
-        if "memory" in data:
-            memory_data = data.pop("memory", {})
-            data["memory_enabled"] = memory_data.get("enabled", False)
-            data["memory_model_name"] = memory_data.get("model_name", "gpt-4o-mini")
-            data["memory_server_url"] = memory_data.get("server_url", "http://localhost:8000")
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid YAML format in {file_path}")
 
         return cls(**data)
 
 
-class ConfigValidator:
-    """Validates agent configuration"""
+def get_config(config_path: str = None) -> AgentConfig:
+    """
+    Load and validate the agent configuration from a YAML file.
 
-    def validate(self, config: AgentConfig, config_file_path: str = None) -> list[str]:
-        """Validate configuration and return list of error messages"""
-        errors = []
+    Args:
+        config_path (str, optional): The path to the configuration file.
+            If not provided, it defaults to 'config.yaml' in the current directory.
 
-        # Basic validation
-        if not config.model:
-            errors.append("Model name is required")
+    Returns:
+        AgentConfig: The loaded and validated agent configuration.
 
-        if not config.tools_dir:
-            errors.append("Tools directory is required")
-        elif not os.path.exists(config.tools_dir):
-            errors.append(f"Tools directory does not exist: {config.tools_dir}")
+    Raises:
+        FileNotFoundError: If the configuration file is not found.
+        ValueError: If the configuration is invalid.
+    """
+    if config_path is None:
+        config_path = "config.yaml"
 
-        # Validate persona content
-        if not config.personas:
-            errors.append("Agent personas are required but none are defined.")
-        elif config.default_persona not in [p.id for p in config.personas]:
-            errors.append(
-                f"Default persona '{config.default_persona}' not found in loaded personas."
-            )
-
-        # Langfuse validation
-        if config.langfuse_enabled:
-            errors.extend(self._validate_langfuse_config())
-
-        # Memory validation
-        if config.memory_enabled:
-            errors.extend(self._validate_memory_config(config))
-
-        return errors
-
-    def _validate_langfuse_config(self) -> list[str]:
-        """Validate Langfuse-specific configuration"""
-        errors = []
-        required_env_vars = ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]
-
-        for var in required_env_vars:
-            if not os.getenv(var):
-                errors.append(f"Langfuse enabled but missing environment variable: {var}")
-
-        return errors
-
-    def _validate_memory_config(self, config: AgentConfig) -> list[str]:
-        """Validate memory-specific configuration"""
-        errors = []
-
-        if not config.memory_server_url:
-            errors.append("Memory server URL is required when memory is enabled")
-
-        if not config.memory_model_name:
-            errors.append("Memory model name is required when memory is enabled")
-
-        return errors
-
-
-class ConfigManager:
-    """Manages configuration loading and validation"""
-
-    def __init__(self, validator: ConfigValidatorProtocol = None):
-        self.validator = validator or ConfigValidator()
-
-    def load_and_validate(self, config_path: str) -> AgentConfig:
-        """Load configuration from file and validate it"""
-        try:
-            config = AgentConfig.from_yaml(config_path)
-        except Exception as e:
-            raise ValueError(f"Failed to load configuration from {config_path}: {e}") from e
-
-        errors = self.validator.validate(config, config_path)
-        if errors:
-            error_msg = "Configuration validation failed:\n" + "\n".join(
-                f"- {error}" for error in errors
-            )
-            raise ValueError(error_msg)
-
-        return config
+    return AgentConfig.from_yaml(config_path)

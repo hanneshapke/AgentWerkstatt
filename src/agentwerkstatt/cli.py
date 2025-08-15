@@ -3,8 +3,8 @@
 import uuid
 
 from absl import app, flags, logging
-from config import AgentConfig
-from main import Agent
+from .config import AgentConfig
+from .main import Agent
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "config.yaml", "Path to the agent configuration file.")

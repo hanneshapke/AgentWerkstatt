@@ -1,6 +1,8 @@
+from functools import wraps
 import logging
 import os
 from typing import Any
+from collections.abc import Callable
 
 from ..config import AgentConfig
 from ..interfaces import ObservabilityServiceProtocol
@@ -19,6 +21,18 @@ except ImportError:
             return func
 
         return decorator if args else decorator
+
+
+def langfuse_enabled_check(f: Callable) -> Callable:
+    """Decorator to check if Langfuse is enabled before executing a method."""
+
+    @wraps(f)
+    def decorated(self: "LangfuseService", *args, **kwargs):
+        if not self.is_enabled:
+            return None
+        return f(self, *args, **kwargs)
+
+    return decorated
 
 
 class LangfuseService(ObservabilityServiceProtocol):
@@ -97,11 +111,9 @@ class LangfuseService(ObservabilityServiceProtocol):
 
         self._enabled = True
 
+    @langfuse_enabled_check
     def observe_request(self, input_data: str, metadata: dict[str, Any]) -> None:
         """Start observing a request by creating a new trace and span"""
-        if not self._is_available():
-            return
-
         try:
             assert self._client is not None  # Type assertion after availability check
             self._current_span = self._client.start_span(
@@ -121,9 +133,10 @@ class LangfuseService(ObservabilityServiceProtocol):
         except Exception as e:
             logging.error(f"Failed to observe request: {e}")
 
+    @langfuse_enabled_check
     def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any | None:
         """Create a generation for tool execution that can be updated later"""
-        if not self._is_available() or not self._current_span:
+        if not self._current_span:
             return None
 
         try:
@@ -140,9 +153,10 @@ class LangfuseService(ObservabilityServiceProtocol):
             logging.error(f"Failed to observe tool execution: {e}")
             return None
 
+    @langfuse_enabled_check
     def update_tool_observation(self, tool_generation: Any, output: Any) -> None:
         """Update tool observation with results"""
-        if not self._is_available() or not tool_generation:
+        if not tool_generation:
             return
 
         try:
@@ -153,11 +167,12 @@ class LangfuseService(ObservabilityServiceProtocol):
         except Exception as e:
             logging.error(f"Failed to update tool observation: {e}")
 
+    @langfuse_enabled_check
     def observe_llm_call(
         self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
     ) -> Any | None:
         """Create a generation for LLM API calls"""
-        if not self._is_available() or not self._current_span:
+        if not self._current_span:
             return None
 
         try:
@@ -175,11 +190,12 @@ class LangfuseService(ObservabilityServiceProtocol):
             logging.error(f"Failed to observe LLM call: {e}")
             return None
 
+    @langfuse_enabled_check
     def update_llm_observation(
         self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
     ) -> None:
         """Update LLM observation with output and usage data"""
-        if not self._is_available() or not llm_generation:
+        if not llm_generation:
             return
 
         try:
@@ -194,9 +210,10 @@ class LangfuseService(ObservabilityServiceProtocol):
         except Exception as e:
             logging.error(f"Failed to update LLM observation: {e}")
 
+    @langfuse_enabled_check
     def update_observation(self, output: Any) -> None:
         """Update current observation with final output and end the span"""
-        if not self._is_available() or not self._current_span:
+        if not self._current_span:
             return
 
         try:
@@ -212,11 +229,9 @@ class LangfuseService(ObservabilityServiceProtocol):
         except Exception as e:
             logging.error(f"Failed to update observation: {e}")
 
+    @langfuse_enabled_check
     def flush_traces(self) -> None:
         """Flush any pending Langfuse traces"""
-        if not self._is_available():
-            return
-
         try:
             assert self._client is not None  # Type assertion after availability check
             self._client.flush()
@@ -226,7 +241,7 @@ class LangfuseService(ObservabilityServiceProtocol):
 
     def get_observe_decorator(self, name: str):
         """Get the observe decorator for function decoration"""
-        if self._is_available():
+        if self._enabled:
             return observe(name=name)
 
         # Return no-op decorator

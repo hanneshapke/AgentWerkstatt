@@ -32,7 +32,16 @@ jobs:
     - name: Install dependencies
       run: |
         uv sync --dev
-        uv pip install -e .
+        uv pip install -e ".[observability,memory]"
+
+    - name: Start services
+      run: docker compose -f third_party/docker-compose.yaml up -d
+
+    - name: Check service status
+      run: |
+        docker compose -f third_party/docker-compose.yaml ps
+        sleep 10 # Give services time to start
+        docker compose -f third_party/docker-compose.yaml logs
 
     - name: Run linting with ruff
       run: |
@@ -47,8 +56,13 @@ jobs:
         uv run mypy .
 
     - name: Run tests with pytest
+      env:
+        ANTHROPIC_API_KEY: "test"
+        LANGFUSE_SECRET_KEY: "test"
+        LANGFUSE_PUBLIC_KEY: "test"
+        LANGFUSE_HOST: "http://localhost:3000"
       run: |
-        uv run pytest --cov=agentwerkstatt --cov-report=xml --cov-report=term
+        uv run pytest --cov=src/agentwerkstatt --cov-report=xml --cov-report=term
 
     - name: Run end-to-end test
       run: |
@@ -57,13 +71,19 @@ jobs:
         uv pip install dist/*.whl
         uv run pytest tests/test_agent_end_to_end.py -v
 
+    - name: Stop services
+      if: always()
+      run: docker compose -f third_party/docker-compose.yaml down
+
     - name: Upload coverage reports to Codecov
       if: matrix.python-version == '3.11'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
 
   build:
     needs: quality-checks

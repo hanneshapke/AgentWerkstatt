@@ -1,9 +1,12 @@
 import json
-from typing import Any
 
 from absl import logging
 
-from ..interfaces import ObservabilityServiceProtocol, ToolExecutorProtocol
+from ..interfaces import (
+    ObservabilityServiceProtocol,
+    ToolExecutorProtocol,
+    ToolResult,
+)
 from ..tools.discovery import ToolRegistry
 
 
@@ -49,19 +52,19 @@ class ToolExecutor(ToolExecutorProtocol):
 
         for tool_block in tool_use_blocks:
             result = self._execute_single_tool_call(tool_block)
-            tool_results.append(result)
+            tool_results.append(result.to_dict())
 
         return tool_results, text_parts
 
-    def _execute_single_tool_call(self, tool_block: dict) -> dict:
-        """Executes a single tool call and returns a formatted result dictionary."""
+    def _execute_single_tool_call(self, tool_block: dict) -> ToolResult:
+        """Executes a single tool call and returns a ToolResult."""
         tool_id = tool_block.get("id")
         tool_name = tool_block.get("name")
         tool_input = tool_block.get("input", {})
 
         if not all([tool_id, tool_name]):
             logging.error(f"Skipping malformed tool block: {tool_block}")
-            return {}
+            return ToolResult(tool_use_id="", content="Malformed tool block", is_error=True)
 
         logging.debug(f"Executing tool '{tool_name}' (ID: {tool_id}) with input: {tool_input}")
 
@@ -72,7 +75,6 @@ class ToolExecutor(ToolExecutorProtocol):
             if not tool:
                 raise ValueError(f"Tool '{tool_name}' not found.")
 
-            # Ensure input is a dictionary
             if not isinstance(tool_input, dict):
                 raise TypeError(
                     f"Tool input for '{tool_name}' must be a dictionary, not {type(tool_input).__name__}."
@@ -80,34 +82,18 @@ class ToolExecutor(ToolExecutorProtocol):
 
             result_content = tool.execute(**tool_input)
 
-            formatted_result = self._format_result(tool_id, result_content)
-            self.observability_service.update_tool_observation(tool_span, formatted_result)
-            return formatted_result
+            if isinstance(result_content, dict | list):
+                result_content = json.dumps(result_content, ensure_ascii=False)
+            else:
+                result_content = str(result_content)
+
+            result = ToolResult(tool_use_id=tool_id, content=result_content)
+            self.observability_service.update_tool_observation(tool_span, result.to_dict())
+            return result
 
         except Exception as e:
             logging.error(f"Error executing tool '{tool_name}': {e}", exc_info=True)
             error_content = f"Error in tool '{tool_name}': {e}"
-            error_result = self._format_result(tool_id, error_content, is_error=True)
-            self.observability_service.update_tool_observation(tool_span, error_result)
-            return error_result
-
-    def _format_result(self, tool_id: str, content: Any, is_error: bool = False) -> dict:
-        """Formats the tool execution result into the required dictionary structure."""
-        try:
-            if isinstance(content, dict | list):
-                content_str = json.dumps(content, ensure_ascii=False)
-            else:
-                content_str = str(content)
-        except (TypeError, json.JSONDecodeError) as e:
-            logging.error(f"Failed to serialize tool content: {e}")
-            content_str = (
-                f"Error: Could not serialize tool output of type {type(content).__name__}."
-            )
-            is_error = True
-
-        return {
-            "type": "tool_result",
-            "tool_use_id": tool_id,
-            "content": content_str,
-            "is_error": is_error,
-        }
+            result = ToolResult(tool_use_id=tool_id, content=error_content, is_error=True)
+            self.observability_service.update_tool_observation(tool_span, result.to_dict())
+            return result

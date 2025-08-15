@@ -24,6 +24,7 @@ class BaseLLM(ABC):
         self.conversation_history: list[dict] = []
         self.timeout = 30.0
 
+    @abstractmethod
     def set_persona(self, persona: str):
         """Set the persona for the LLM"""
         raise NotImplementedError("Subclasses must implement this method")
@@ -61,3 +62,17 @@ class BaseLLM(ABC):
         Processes a user request by sending it to the LLM and returning the conversation history and response.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def query(self, prompt: str, context: str) -> str:
+        """
+        Sends a query to the language model and returns the response.
+        """
+        pass
+
+    @abstractmethod
+    def get_info(self) -> dict:
+        """
+        Returns information about the model.
+        """
+        pass

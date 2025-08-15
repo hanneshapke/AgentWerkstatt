@@ -14,6 +14,7 @@
 <p align="center">
   <a href="https://github.com/astral-sh/ruff" style="text-decoration: none;"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
   <a href="https://docs.astral.sh/uv/" style="text-decoration: none;"><img src="https://img.shields.io/badge/uv-dependency%20manager-blue?logo=uv" alt="uv"></a>
+  <a href="https://codecov.io/gh/hanneshapke/AgentWerkstatt" style="text-decoration: none;"><img src="https://codecov.io/gh/hanneshapke/AgentWerkstatt/branch/main/graph/badge.svg" alt="Test Coverage"></a>
 </p>
 
 <p align="center">
