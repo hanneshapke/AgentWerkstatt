@@ -81,6 +81,10 @@ class AgentConfig:
             data["memory_model_name"] = memory_data.get("model_name", "gpt-4o-mini")
             data["memory_server_url"] = memory_data.get("server_url", "http://localhost:8000")
 
+        # Validate required fields
+        if "model" not in data or not data["model"]:
+            raise ValueError("Configuration must contain a 'model' field with a valid model name.")
+
         return cls(**data)
 
 

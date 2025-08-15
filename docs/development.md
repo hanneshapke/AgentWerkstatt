@@ -42,7 +42,10 @@ uv run mypy .
 uv run pytest
 
 # Run tests with coverage
-uv run pytest --cov=agentwerkstatt --cov-report=html --cov-report=term
+uv run pytest --cov=src/agentwerkstatt --cov-report=html --cov-report=term
+
+# Quick coverage check (uses custom script)
+python scripts/check_coverage.py
 ```
 
 ## Adding a New LLM Provider
@@ -309,7 +312,7 @@ uv run pytest
 uv run pytest tests/test_tools.py
 
 # Run with coverage
-uv run pytest --cov=agentwerkstatt --cov-report=html
+uv run pytest --cov=src/agentwerkstatt --cov-report=html
 
 # Run integration tests (requires API keys)
 uv run pytest -m integration
@@ -317,6 +320,37 @@ uv run pytest -m integration
 # Run only unit tests
 uv run pytest -m "not integration"
 ```
+
+### Test Coverage
+
+The project maintains high test coverage with automatic reporting:
+
+- **Target Coverage**: 90% minimum
+- **Current Coverage**: [![Coverage](https://codecov.io/gh/hanneshapke/AgentWerkstatt/branch/main/graph/badge.svg)](https://codecov.io/gh/hanneshapke/AgentWerkstatt)
+- **Coverage Reports**: Automatically generated on every CI run
+
+#### Local Coverage Checking
+
+```bash
+# Quick coverage check with status
+python scripts/check_coverage.py
+
+# Detailed coverage report
+uv run pytest --cov=src/agentwerkstatt --cov-report=html
+# Open htmlcov/index.html in browser for detailed view
+
+# Coverage with missing lines
+uv run pytest --cov=src/agentwerkstatt --cov-report=term-missing
+```
+
+#### Coverage Integration
+
+- **Codecov**: Automatic coverage reporting on GitHub
+- **CI/CD**: Coverage runs on all pull requests
+- **Badge**: Dynamic coverage badge in README.md
+- **Config**: See `.codecov.yml` for coverage settings
+
+The coverage badge in the README automatically updates based on the latest CI run and links to detailed coverage reports on Codecov.
 
 ### Test Categories
 

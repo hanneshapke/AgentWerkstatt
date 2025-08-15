@@ -13,6 +13,7 @@ from .services.conversation_handler import ConversationHandler
 from .services.langfuse_service import LangfuseService, NoOpObservabilityService
 from .services.memory_service import MemoryService, NoOpMemoryService
 from .services.tool_executor import ToolExecutor
+from .services.tool_interaction_handler import ToolInteractionHandler
 from .tools.discovery import ToolRegistry
 
 
@@ -58,6 +59,7 @@ class Agent:
 
         # Initialize remaining services
         self.tool_executor = tool_executor or self._create_tool_executor()
+        self.tool_interaction_handler = self._create_tool_interaction_handler()
         self.conversation_handler = conversation_handler or self._create_conversation_handler()
 
         self._set_logging_verbosity(self.config.verbose)
@@ -109,6 +111,10 @@ class Agent:
         """Create tool executor with observability support"""
         return ToolExecutor(self.tool_registry, self.observability_service, agent_instance=self)
 
+    def _create_tool_interaction_handler(self) -> ToolInteractionHandler:
+        """Create tool interaction handler."""
+        return ToolInteractionHandler(self.tool_executor)
+
     def _create_conversation_handler(self) -> ConversationHandlerProtocol:
         """Create conversation handler with all dependencies"""
         return ConversationHandler(
@@ -116,7 +122,7 @@ class Agent:
             agent=self,
             memory_service=self.memory_service,
             observability_service=self.observability_service,
-            tool_executor=self.tool_executor,
+            tool_interaction_handler=self.tool_interaction_handler,
         )
 
     def process_request(self, user_input: str, session_id: str | None = None) -> str:

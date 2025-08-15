@@ -1,4 +1,6 @@
+from functools import wraps
 import logging
+from collections.abc import Callable
 
 from ..config import AgentConfig
 from ..interfaces import MemoryServiceProtocol
@@ -10,6 +12,18 @@ try:
     MEM0_AVAILABLE = True
 except ImportError:
     MEM0_AVAILABLE = False
+
+
+def memory_enabled_check(f: Callable) -> Callable:
+    """Decorator to check if memory is enabled before executing a method."""
+
+    @wraps(f)
+    def decorated(self: "MemoryService", *args, **kwargs):
+        if not self.is_enabled:
+            return None
+        return f(self, *args, **kwargs)
+
+    return decorated
 
 
 class MemoryService(MemoryServiceProtocol):
@@ -70,9 +84,10 @@ class MemoryService(MemoryServiceProtocol):
             )
             self._enabled = False
 
+    @memory_enabled_check
     def retrieve_memories(self, user_input: str, user_id: str) -> str:
         """Retrieve relevant memories for the user input"""
-        if not self._enabled or not self._memory:
+        if not self._memory:
             return ""
 
         try:
@@ -90,9 +105,10 @@ class MemoryService(MemoryServiceProtocol):
             logging.error(f"Failed to retrieve memories: {e}")
             return ""
 
+    @memory_enabled_check
     def store_conversation(self, user_input: str, assistant_response: str, user_id: str) -> None:
         """Store the conversation in memory"""
-        if not self._enabled or not self._memory:
+        if not self._memory:
             return
 
         try:

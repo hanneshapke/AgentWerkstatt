@@ -1,16 +1,35 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from config import AgentConfig
 
 
+@dataclass
 class Message:
     """Represents a message in a conversation."""
 
-    def __init__(self, role: str, content: str):
-        self.role = role
-        self.content = content
+    role: str
+    content: str
+
+
+@dataclass
+class ToolResult:
+    """Represents the result of a tool execution."""
+
+    tool_use_id: str
+    content: str
+    is_error: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Converts the ToolResult to a dictionary."""
+        return {
+            "type": "tool_result",
+            "tool_use_id": self.tool_use_id,
+            "content": self.content,
+            "is_error": self.is_error,
+        }
 
 
 class MemoryServiceProtocol(ABC):

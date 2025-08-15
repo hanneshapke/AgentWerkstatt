@@ -10,10 +10,10 @@ class DelegateTool(BaseTool):
         super().__init__()
         self.agent = None  # This will be injected by the ToolExecutor
 
-    def _get_name(self) -> str:
+    def get_name(self) -> str:
         return "delegate_task"
 
-    def _get_description(self) -> str:
+    def get_description(self) -> str:
         return (
             "Delegates a task to a specified agent persona. Use this to leverage the "
             "expertise of other agents to accomplish your goal."

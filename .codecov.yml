@@ -1,0 +1,31 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 5%
+    patch:
+      default:
+        target: 90%
+        threshold: 5%
+
+comment:
+  layout: "reach,diff,flags,tree,reach"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "tests/*"
+  - "examples/*"
+  - "docs/*"
+  - "scripts/*"
+  - "**/__pycache__"
+  - "*.egg-info/*"
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no

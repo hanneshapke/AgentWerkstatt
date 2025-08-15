@@ -48,7 +48,7 @@ jobs:
 
     - name: Run tests with pytest
       run: |
-        uv run pytest --cov=agentwerkstatt --cov-report=xml --cov-report=term
+        uv run pytest --cov=src/agentwerkstatt --cov-report=xml --cov-report=term
 
     - name: Run end-to-end test
       run: |
@@ -59,11 +59,13 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       if: matrix.python-version == '3.11'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
 
   build:
     needs: quality-checks

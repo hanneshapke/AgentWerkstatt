@@ -1,8 +1,6 @@
 import os
 
-import httpx
-from absl import logging
-
+from .api_client import ApiClient
 from .base import BaseLLM
 
 
@@ -11,9 +9,16 @@ class ClaudeLLM(BaseLLM):
 
     def __init__(self, persona: str, model_name: str, tools: dict, observability_service=None):
         super().__init__(model_name, tools, persona, observability_service)
-        self.base_url = "https://api.anthropic.com/v1/messages"
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self._validate_api_key("ANTHROPIC_API_KEY")
+        self.api_client = ApiClient(
+            base_url="https://api.anthropic.com/v1/messages",
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+            },
+        )
 
     def set_persona(self, persona: str):
         """Set the persona for the LLM"""
@@ -34,35 +39,10 @@ class ClaudeLLM(BaseLLM):
             model_name=self.model_name, messages=messages
         )
 
-        try:
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.post(
-                    self.base_url,
-                    json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-api-key": self.api_key,
-                        "anthropic-version": "2023-06-01",
-                    },
-                )
-                response.raise_for_status()  # Raises HTTPStatusError for 4xx/5xx responses
-                response_data = response.json()
+        response_data = self.api_client.post(payload)
 
-                self.observability_service.update_llm_observation(llm_span, response_data)
-                return response_data
-
-        except httpx.HTTPStatusError as e:
-            error_details = e.response.json().get("error", {})
-            error_message = error_details.get("message", e.response.text)
-            logging.error(f"Claude API Error: {error_message}", exc_info=True)
-            error_response = {"error": error_message}
-            self.observability_service.update_llm_observation(llm_span, error_response)
-            return error_response
-        except httpx.RequestError as e:
-            logging.error(f"Network error calling Claude API: {e}", exc_info=True)
-            error_response = {"error": f"Network error: {e}"}
-            self.observability_service.update_llm_observation(llm_span, error_response)
-            return error_response
+        self.observability_service.update_llm_observation(llm_span, response_data)
+        return response_data
 
     def process_request(self, messages: list[dict]) -> tuple[list[dict], list[dict]]:
         """
