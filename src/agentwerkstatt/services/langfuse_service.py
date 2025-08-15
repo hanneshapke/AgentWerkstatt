@@ -2,8 +2,8 @@ import logging
 import os
 from typing import Any
 
-from config import AgentConfig
-from interfaces import ObservabilityServiceProtocol
+from ..config import AgentConfig
+from ..interfaces import ObservabilityServiceProtocol
 
 # Langfuse imports
 try:

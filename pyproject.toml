@@ -56,7 +56,7 @@ Repository = "https://github.com/hanneshapke/agentwerkstatt.git"
 "Contributing" = "https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["*"]
 exclude = ["tests*"]
 
@@ -116,7 +116,6 @@ select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
     "F",  # Pyflakes
-    "I",  # isort
     "B",  # flake8-bugbear
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
@@ -205,7 +204,7 @@ dev = [
 
 [tool.coverage.run]
 branch = true
-source = ["."]
+source = ["src/agentwerkstatt"]
 omit = [
     "tests/*",
     "*/__init__.py",

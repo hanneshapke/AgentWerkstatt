@@ -9,8 +9,8 @@ from unittest.mock import Mock
 import pytest
 import yaml
 
-from config import AgentConfig
-from llms.base import BaseLLM
+from agentwerkstatt.config import AgentConfig
+from agentwerkstatt.llms.base import BaseLLM
 
 
 class TestPersonaBaseLLM(BaseLLM):
