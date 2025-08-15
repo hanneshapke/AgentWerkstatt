@@ -62,7 +62,7 @@ class TestCli(unittest.TestCase):
         self.mock_agent.memory_service.is_enabled = True
         self.mock_agent.observability_service.is_enabled = True
         _print_welcome_message(self.mock_agent, "test_session_id")
-        self.assertEqual(mock_print.call_count, 8)
+        self.assertEqual(mock_print.call_count, 7)
 
     @patch("builtins.input", side_effect=KeyboardInterrupt)
     @patch("builtins.print")
