@@ -33,8 +33,17 @@ class Agent:
     ):
         self.config = config
         self.session_id = session_id
-        self.active_persona_name = config.default_persona
-        self.active_persona = self.config.personas[self.active_persona_name]
+
+        default_persona_config = next(
+            (p for p in config.personas if p.id == config.default_persona), None
+        )
+        if not default_persona_config:
+            raise ValueError(
+                f"Default persona '{config.default_persona}' not found in configuration."
+            )
+
+        self.active_persona_name = default_persona_config.id
+        self.active_persona = default_persona_config.file
 
         # Initialize tool registry first
         self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
@@ -73,11 +82,12 @@ class Agent:
 
     def switch_persona(self, persona_name: str):
         """Switches the agent's active persona."""
-        if persona_name not in self.config.personas:
+        persona_config = next((p for p in self.config.personas if p.id == persona_name), None)
+        if not persona_config:
             raise ValueError(f"Persona '{persona_name}' not found in configuration.")
 
-        self.active_persona_name = persona_name
-        self.active_persona = self.config.personas[persona_name]
+        self.active_persona_name = persona_config.id
+        self.active_persona = persona_config.file
 
         # Update the LLM with the new persona
         self.llm.set_persona(self.active_persona)

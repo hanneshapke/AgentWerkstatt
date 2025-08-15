@@ -1,11 +1,17 @@
 # Example Multi-Agent Configuration
-model: "claude-3-5-sonnet-20240620"
+model: "claude-4-sonnet-20250514"
 tools_dir: "tools" # Point to the main tools directory to access the delegate tool
 verbose: false
 
 personas:
-  planner: "personas/planner.md"
-  joke_writer: "personas/joke_writer.md"
+  - id: planner
+    name: "Planner"
+    description: "A persona that plans and delegates tasks."
+    file: "personas/planner.md"
+  - id: joke_writer
+    name: "Joke Writer"
+    description: "A persona that specializes in writing jokes."
+    file: "personas/joke_writer.md"
 
 default_persona: "planner"
 

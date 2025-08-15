@@ -32,7 +32,7 @@ The `config.yaml` file defines the agent's behavior:
 
 ```yaml
 # LLM Model Configuration
-model: "claude-sonnet-4-20250514"
+model: "claude-4-sonnet-20250514"
 
 # Tools Configuration
 tools_dir: "../tools/"

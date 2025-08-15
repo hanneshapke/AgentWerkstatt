@@ -8,13 +8,24 @@ from .interfaces import ConfigValidatorProtocol
 
 
 @dataclass
+class PersonaConfig:
+    """Configuration for a single persona."""
+
+    id: str
+    name: str
+    description: str
+    file: str
+    config: dict = field(default_factory=dict)
+
+
+@dataclass
 class AgentConfig:
     """Configuration for the Agent"""
 
     model: str = ""
     tools_dir: str = ""
     verbose: bool = False
-    personas: dict[str, str] = field(default_factory=dict)
+    personas: list[PersonaConfig] = field(default_factory=list)
     default_persona: str = "default"
     langfuse_enabled: bool = False
     langfuse_project_name: str = "agentwerkstatt"
@@ -38,27 +49,21 @@ class AgentConfig:
 
         # Load personas from the 'personas' section.
         if "personas" in data:
-            loaded_personas = {}
-            for name, persona_path in data["personas"].items():
-                persona_file = (
-                    Path(persona_path) if os.path.isabs(persona_path) else config_dir / persona_path
-                )
-                if persona_file.exists():
-                    loaded_personas[name] = cls.from_persona_file(str(persona_file))
+            loaded_personas = []
+            for persona_data in data["personas"]:
+                persona_file = persona_data["file"]
+                if not os.path.isabs(persona_file):
+                    persona_file = config_dir / persona_file
+                if Path(persona_file).exists():
+                    persona_content = cls.from_persona_file(str(persona_file))
+                    persona_data["file"] = persona_content
+                    loaded_personas.append(PersonaConfig(**persona_data))
                 else:
                     # Raise an error if a persona file is not found.
-                    raise FileNotFoundError(f"Persona file not found for '{name}': {persona_file}")
+                    raise FileNotFoundError(
+                        f"Persona file not found for '{persona_data['id']}': {persona_file}"
+                    )
             data["personas"] = loaded_personas
-        # Support for a single 'persona' key for backward compatibility.
-        elif "persona" in data:
-            persona_file = data["persona"]
-            if not os.path.isabs(persona_file):
-                persona_file = config_dir / persona_file
-            if Path(persona_file).exists():
-                data["personas"] = {"default": cls.from_persona_file(str(persona_file))}
-            else:
-                raise FileNotFoundError(f"Persona file not found: {persona_file}")
-            del data["persona"]
         else:
             # If no personas are defined, raise an error.
             raise ValueError("Configuration must contain a 'personas' section.")
@@ -98,7 +103,7 @@ class ConfigValidator:
         # Validate persona content
         if not config.personas:
             errors.append("Agent personas are required but none are defined.")
-        elif config.default_persona not in config.personas:
+        elif config.default_persona not in [p.id for p in config.personas]:
             errors.append(
                 f"Default persona '{config.default_persona}' not found in loaded personas."
             )

@@ -80,7 +80,7 @@ Agent Request (user_input: "What's the weather in Tokyo?")
 ├── Claude Request Processing
 │   └── Claude API Call (generation)
 │       ├── Input: conversation messages
-│       ├── Model: claude-sonnet-4-20250514
+│       ├── Model: claude-4-sonnet-20250514
 │       ├── Tokens: input=25, output=45
 │       └── Output: response with tool calls
 ├── Tool: get_weather

@@ -1,9 +1,9 @@
-import os
 import unittest
+import tempfile
+import yaml
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
-
-import yaml
 
 from agentwerkstatt.config import AgentConfig
 from agentwerkstatt.llms.mock import MockLLM
@@ -33,51 +33,59 @@ class StaticTool(BaseTool):
 
 class TestAgentEndToEnd(unittest.TestCase):
     def setUp(self):
-        # Create a dummy tools directory
-        self.test_dir = os.path.dirname(__file__)
-        self.tools_dir = os.path.join(self.test_dir, "temp_tools")
-        os.makedirs(self.tools_dir, exist_ok=True)
+        self.test_dir = Path(__file__).parent
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.tools_dir = Path(self.temp_dir.name) / "temp_tools"
+        self.tools_dir.mkdir()
+
+        # Create a dummy persona file
+        self.persona_content = """
+# Test Persona
+**Name:** TestBot
+**Role:** Testing Assistant
+**Personality & Style:** A simple, direct testing agent.
+**Expertise & Knowledge:** Specializes in test execution, tool validation.
+"""
+        self.persona_file = self.test_dir / "test_agent.md"
+        self.persona_file.write_text(self.persona_content)
+
+        # Create a dummy config file
+        self.config_data = {
+            "model": "mock-model",
+            "tools_dir": str(self.tools_dir),
+            "personas": [
+                {
+                    "id": "default",
+                    "name": "TestBot",
+                    "description": "A persona for testing.",
+                    "file": str(self.persona_file),
+                }
+            ],
+            "default_persona": "default",
+        }
+        self.config_file = Path(self.temp_dir.name) / "test_config.yaml"
+        with open(self.config_file, "w") as f:
+            yaml.dump(self.config_data, f)
 
     def tearDown(self):
-        # Clean up the dummy tools directory
-        if os.path.exists(self.tools_dir):
-            for file in os.listdir(self.tools_dir):
-                os.remove(os.path.join(self.tools_dir, file))
-            os.rmdir(self.tools_dir)
+        self.temp_dir.cleanup()
+        if self.persona_file.exists():
+            self.persona_file.unlink()
 
     def test_agent_with_static_tool(self):
         # 1. Setup
-        # Tools
         tools = [StaticTool()]
-
-        # Mock LLM that suggests using the static tool
         mock_llm = MockLLM(tools=tools)
-        tool_registry = ToolRegistry(tools_dir=self.tools_dir)
-        tool_registry._tools = tools  # Manually inject the tool
-        tool_registry._tool_map = {
-            tool.get_name(): tool for tool in tools
-        }  # Manually inject the tool
+        tool_registry = ToolRegistry(tools_dir=str(self.tools_dir))
+        tool_registry._tools = tools
+        tool_registry._tool_map = {tool.get_name(): tool for tool in tools}
         mock_observability = Mock()
         tool_executor = ToolExecutor(tool_registry, mock_observability)
-
-        # Mock services
         mock_memory_service = Mock()
         mock_memory_service.is_enabled = False
 
-        # Agent Configuration - Load from test config file
-        config_path = os.path.join(self.test_dir, "test_config.yaml")
-        with open(config_path) as f:
-            config_data = yaml.safe_load(f)
-        config_data["tools_dir"] = self.tools_dir
-        # Adapt to new personas structure
-        if "persona" in config_data:
-            config_data["personas"] = {"default": config_data.pop("persona")}
-        # Remove unexpected keys
-        config_data.pop("langfuse", None)
-        config_data.pop("memory", None)
-        agent_config = AgentConfig(**config_data)
+        agent_config = AgentConfig.from_yaml(str(self.config_file))
 
-        # Agent with injected dependencies
         agent = Agent(
             config=agent_config,
             llm=mock_llm,
@@ -85,8 +93,6 @@ class TestAgentEndToEnd(unittest.TestCase):
             observability_service=mock_observability,
             tool_executor=tool_executor,
         )
-
-        # Override the Agent's discovered tools with just our test tool
         agent.tool_registry._tools = tools
         mock_llm.tools = tools
 
@@ -100,40 +106,16 @@ class TestAgentEndToEnd(unittest.TestCase):
     def test_agent_persona_in_system_prompt(self):
         """Test that the persona from test_agent.md is properly loaded and used"""
         # 1. Setup
-        # Load configuration from test files using from_yaml to properly load persona content
-        config_path = os.path.join(self.test_dir, "test_config.yaml")
-        # Temporarily modify the config to use correct tools_dir
-        with open(config_path) as f:
-            config_data = yaml.safe_load(f)
-        config_data["tools_dir"] = self.tools_dir
+        agent_config = AgentConfig.from_yaml(str(self.config_file))
 
-        # Write temporary config file with updated tools_dir
-        temp_config_path = os.path.join(self.test_dir, "temp_test_config.yaml")
-        with open(temp_config_path, "w") as f:
-            yaml.dump(config_data, f)
-
-        # Use from_yaml to properly load persona content
-        agent_config = AgentConfig.from_yaml(temp_config_path)
-
-        # Clean up temporary file
-        os.remove(temp_config_path)
-
-        # 2. Verification - Check that persona was loaded from test_agent.md
-        # Access the default persona content directly from the loaded personas
-        persona_content = agent_config.personas.get("default", "")
+        # 2. Verification
+        default_persona = next((p for p in agent_config.personas if p.id == "default"), None)
+        self.assertIsNotNone(default_persona)
+        persona_content = default_persona.file
         self.assertIn("TestBot", persona_content)
         self.assertIn("Testing Assistant", persona_content)
         self.assertIn("simple, direct testing agent", persona_content)
         self.assertIn("test execution, tool validation", persona_content)
-
-        # 3. Create agent with mock dependencies to test system prompt
-
-        # Create system prompt and verify persona content is included
-
-        # 4. Assertions - Verify persona content is in system prompt
-        self.assertIn("TestBot", persona_content)
-        self.assertIn("Testing Assistant", persona_content)
-        self.assertIn("simple, direct testing agent", persona_content)
 
 
 if __name__ == "__main__":

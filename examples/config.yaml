@@ -2,7 +2,7 @@
 # Configuration file for the minimalistic agent framework
 
 # LLM Model Configuration
-model: "claude-sonnet-4-20250514"
+model: "claude-4-sonnet-20250514"
 
 # Tools Configuration (uncomment if you want to use your own tools)
 tools_dir: "../tools/"
