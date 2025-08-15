@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings
 
 class PersonaConfig(BaseModel):
     """Configuration for a single persona."""
+
     id: str
     name: str
     description: str
@@ -16,34 +17,12 @@ class PersonaConfig(BaseModel):
     config: dict = Field(default_factory=dict)
 
 
-@dataclass
-class AgentConfig:
-    """Configuration for the Agent"""
-
-    model: str = ""
-    tools_dir: str = ""
-    verbose: bool = False
-    personas: list[PersonaConfig] = field(default_factory=list)
-    default_persona: str = "default"
-    langfuse_enabled: bool = False
-    langfuse_project_name: str = "agentwerkstatt"
-    memory_enabled: bool = False
-    memory_model_name: str = "gpt-4o-mini"
-    memory_server_url: str = "http://localhost:8000"
-
-    @classmethod
-    def from_persona_file(cls, persona_file: str) -> str:
-        """Load persona content from a file."""
-        with open(persona_file, encoding="utf-8") as f:
-            return f.read().strip()
-
 class LangfuseConfig(BaseModel):
     """Configuration for Langfuse."""
 
     enabled: bool = False
     project_name: str = "agentwerkstatt"
 
-      
     @model_validator(mode="after")
     def check_env_vars(self) -> "LangfuseConfig":
         if self.enabled:
@@ -77,7 +56,6 @@ class AgentConfig(BaseSettings):
     langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     _config_dir: ClassVar[Path] = Path.cwd()
-
 
     @field_validator("personas", mode="before")
     @classmethod
