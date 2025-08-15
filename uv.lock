@@ -18,7 +18,7 @@ wheels = [
 
 [[package]]
 name = "agentwerkstatt"
-version = "0.1.15.post7"
+version = "0.1.15.post8"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },
@@ -28,14 +28,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-mock" },
-    { name = "ruff" },
-]
 memory = [
     { name = "mem0ai" },
 ]
@@ -66,14 +58,8 @@ requires-dist = [
     { name = "langfuse", marker = "extra == 'observability'", specifier = ">=3.2.1" },
     { name = "langfuse", marker = "extra == 'tracing'", specifier = ">=3.2.1" },
     { name = "mem0ai", marker = "extra == 'memory'", specifier = ">=0.1.115" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
 ]
 
 [package.metadata.requires-dev]

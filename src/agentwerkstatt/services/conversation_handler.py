@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING
 
 from absl import logging
 
-from interfaces import (
+from ..interfaces import (
     ConversationHandlerProtocol,
     MemoryServiceProtocol,
     ObservabilityServiceProtocol,
     ToolExecutorProtocol,
 )
-from llms.claude import ClaudeLLM
+from ..llms.claude import ClaudeLLM
 
 if TYPE_CHECKING:
     from ..agent import Agent

@@ -3,7 +3,6 @@
 import uuid
 
 from absl import app, flags, logging
-
 from config import AgentConfig
 from main import Agent
 

@@ -56,7 +56,7 @@ Repository = "https://github.com/hanneshapke/agentwerkstatt.git"
 "Contributing" = "https://github.com/hanneshapke/agentwerkstatt/blob/main/CONTRIBUTING.md"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["*"]
 exclude = ["tests*"]
 
@@ -205,7 +205,7 @@ dev = [
 
 [tool.coverage.run]
 branch = true
-source = ["."]
+source = ["src/agentwerkstatt"]
 omit = [
     "tests/*",
     "*/__init__.py",

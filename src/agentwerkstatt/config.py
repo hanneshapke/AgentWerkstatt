@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from interfaces import ConfigValidatorProtocol
+from .interfaces import ConfigValidatorProtocol
 
 
 @dataclass

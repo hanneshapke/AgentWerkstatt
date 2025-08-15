@@ -16,7 +16,6 @@ repos:
     rev: v0.1.6
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -27,3 +26,4 @@ repos:
           - httpx
           - python-dotenv
           - absl-py
+          - types-PyYAML

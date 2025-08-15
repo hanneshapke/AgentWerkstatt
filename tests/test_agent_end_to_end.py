@@ -4,13 +4,12 @@ from typing import Any
 from unittest.mock import Mock
 
 import yaml
-
-from config import AgentConfig
-from llms.mock import MockLLM
-from main import Agent
-from services.tool_executor import ToolExecutor
-from tools.base import BaseTool
-from tools.discovery import ToolRegistry
+from agentwerkstatt.config import AgentConfig
+from agentwerkstatt.llms.mock import MockLLM
+from agentwerkstatt.main import Agent
+from agentwerkstatt.services.tool_executor import ToolExecutor
+from agentwerkstatt.tools.base import BaseTool
+from agentwerkstatt.tools.discovery import ToolRegistry
 
 
 class StaticTool(BaseTool):

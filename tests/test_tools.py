@@ -6,10 +6,9 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-
-from services.tool_executor import ToolExecutor
-from tools.base import BaseTool
-from tools.discovery import ToolRegistry
+from agentwerkstatt.services.tool_executor import ToolExecutor
+from agentwerkstatt.tools.base import BaseTool
+from agentwerkstatt.tools.discovery import ToolRegistry
 
 
 class TestToolRegistry:
@@ -65,9 +64,7 @@ class TestToolsIntegration:
     @pytest.mark.integration
     def test_tools_modules_can_be_imported(self):
         """Test that all tools modules can be imported successfully."""
-        import tools.base
-        import tools.discovery
-        import tools.websearch
+        import agentwerkstatt.tools as tools
 
         assert hasattr(tools.base, "BaseTool")
         assert hasattr(tools.discovery, "ToolRegistry")

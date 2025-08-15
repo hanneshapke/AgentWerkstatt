@@ -2,15 +2,16 @@
 Unit tests for the Agent class
 """
 
+import tempfile
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
-
-from config import AgentConfig
-from llms.mock import MockLLM
-from main import Agent
-from services.tool_executor import ToolExecutor
+from agentwerkstatt.config import AgentConfig
+from agentwerkstatt.llms.mock import MockLLM
+from agentwerkstatt.main import Agent
+from agentwerkstatt.services.tool_executor import ToolExecutor
 
 
 class MockMemoryService:
@@ -130,11 +131,20 @@ class MockConversationHandler:
 
 
 @pytest.fixture
-def mock_config():
+def temp_tools_dir():
+    """Create a temporary tools directory for testing"""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tools_dir = Path(temp_dir)
+        (tools_dir / "__init__.py").touch()
+        yield str(tools_dir)
+
+
+@pytest.fixture
+def mock_config(temp_tools_dir):
     """Create a mock configuration for testing"""
     return AgentConfig(
         model="claude-3-sonnet-20240229",
-        tools_dir="tools",
+        tools_dir=temp_tools_dir,
         verbose=False,
         personas={"default": "Test agent"},
         default_persona="default",
