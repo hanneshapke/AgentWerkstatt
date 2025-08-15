@@ -99,6 +99,7 @@ def _run_interactive_loop(agent: Agent, session_id: str):
         except Exception as e:
             print(f"❌ Error: {e}")
             logging.error(f"Unexpected error in interactive loop: {e}")
+            break
 
 
 def main(argv):

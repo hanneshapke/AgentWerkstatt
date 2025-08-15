@@ -5,7 +5,7 @@ Unit tests for the Agent class
 import tempfile
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -173,7 +173,15 @@ def mock_services():
     }
 
 
-def test_agent_initialization_with_mocks(mock_config):
+@patch("agentwerkstatt.main.ToolRegistry")
+@patch("agentwerkstatt.main.LangfuseService")
+@patch("agentwerkstatt.main.MemoryService")
+def test_agent_initialization_with_mocks(
+    mock_memory_service_class,
+    mock_langfuse_service_class,
+    mock_tool_registry,
+    mock_config,
+):
     """Test that agent can be initialized with mock dependencies"""
     llm = MockLLM()
     memory_service = MockMemoryService()
@@ -194,6 +202,24 @@ def test_agent_initialization_with_mocks(mock_config):
     assert agent.observability_service == observability_service
     assert agent.tool_executor == tool_executor
     assert agent.conversation_handler == conversation_handler
+    mock_tool_registry.assert_called_once_with(tools_dir=mock_config.tools_dir)
+    mock_memory_service_class.assert_not_called()
+    mock_langfuse_service_class.assert_not_called()
+
+
+@patch("agentwerkstatt.main.ToolRegistry")
+@patch("agentwerkstatt.main.LangfuseService")
+@patch("agentwerkstatt.main.MemoryService")
+def test_agent_initialization_missing_persona(
+    mock_memory_service_class,
+    mock_langfuse_service_class,
+    mock_tool_registry,
+    mock_config,
+):
+    """Test agent initialization with a missing default persona"""
+    mock_config.default_persona = "non_existent"
+    with pytest.raises(ValueError):
+        Agent(config=mock_config)
 
 
 def test_process_request_with_mocks(mock_config, mock_services):
