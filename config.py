@@ -36,8 +36,7 @@ class AgentConfig:
 
         config_dir = Path(file_path).parent
 
-        # Load personas based on the configuration structure.
-        # Case 1: A 'personas' dictionary is defined.
+        # Load personas from the 'personas' section.
         if "personas" in data:
             loaded_personas = {}
             for name, persona_path in data["personas"].items():
@@ -47,24 +46,22 @@ class AgentConfig:
                 if persona_file.exists():
                     loaded_personas[name] = cls.from_persona_file(str(persona_file))
                 else:
-                    print(f"Warning: Persona file not found for '{name}': {persona_file}")
+                    # Raise an error if a persona file is not found.
+                    raise FileNotFoundError(f"Persona file not found for '{name}': {persona_file}")
             data["personas"] = loaded_personas
-        # Case 2: A single 'persona' key is defined (for backward compatibility).
-        elif data.get("persona"):
+        # Support for a single 'persona' key for backward compatibility.
+        elif "persona" in data:
             persona_file = data["persona"]
             if not os.path.isabs(persona_file):
                 persona_file = config_dir / persona_file
-            data["personas"] = {"default": cls.from_persona_file(str(persona_file))}
-            del data["persona"]
-        # Case 3: No persona is defined; fall back to default 'agents.md'.
-        else:
-            # Default to agents.md in the same directory as the config file.
-            default_persona_file = config_dir / "agents.md"
-            if default_persona_file.exists():
-                data["personas"] = {"default": cls.from_persona_file(str(default_persona_file))}
+            if Path(persona_file).exists():
+                data["personas"] = {"default": cls.from_persona_file(str(persona_file))}
             else:
-                # If not found, fall back to 'agents.md' in the project root.
-                data["personas"] = {"default": cls.from_persona_file("agents.md")}
+                raise FileNotFoundError(f"Persona file not found: {persona_file}")
+            del data["persona"]
+        else:
+            # If no personas are defined, raise an error.
+            raise ValueError("Configuration must contain a 'personas' section.")
 
         # Handle nested langfuse config - flatten it into the main config
         if "langfuse" in data:

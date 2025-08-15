@@ -149,17 +149,12 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     assert "SupportBot" in custom_prompt
 
 
-def test_fallback_to_default_persona_file():
-    """Test fallback to default agents.md when persona is not specified"""
+def test_missing_persona_section_raises_error():
+    """Test that a ValueError is raised when the personas section is missing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        # Create default agents.md file
-        default_persona_content = "# Default Agent\nI am a helpful assistant."
-        agent_md_file = temp_path / "agents.md"
-        agent_md_file.write_text(default_persona_content, encoding="utf-8")
-
-        # Create config without persona field
+        # Create config without personas section
         config_content = {
             "model": "claude-3-sonnet-20240229",
             "tools_dir": "./tools",
@@ -169,11 +164,9 @@ def test_fallback_to_default_persona_file():
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(config_content, f)
 
-        # Load config - should fall back to agents.md
-        config = AgentConfig.from_yaml(str(config_file))
-
-        assert config.personas["default"] == default_persona_content.strip()
-        assert "Default Agent" in config.personas["default"]
+        # Verify that a ValueError is raised
+        with pytest.raises(ValueError, match="Configuration must contain a 'personas' section."):
+            AgentConfig.from_yaml(str(config_file))
 
 
 def test_persona_loading_with_different_encodings(test_config_content):
