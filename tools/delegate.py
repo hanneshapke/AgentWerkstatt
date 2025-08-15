@@ -45,16 +45,22 @@ class DelegateTool(BaseTool):
     def execute(self, persona_name: str, task_description: str) -> dict[str, Any]:
         """Switches persona, executes the task, and switches back."""
         if not self.agent:
-            return {"error": "Agent instance not available for delegation."}
+            return {"status": "error", "error": "Agent instance not available for delegation."}
 
         original_persona = self.agent.active_persona_name
         try:
             self.agent.switch_persona(persona_name)
             # We can reuse the session_id from the agent
             result = self.agent.process_request(task_description, session_id=self.agent.session_id)
-            return {"result": f"Task completed by {persona_name}. Output: {result}"}
+            return {
+                "status": "success",
+                "persona": persona_name,
+                "output": result,
+            }
+        except ValueError as e:
+            return {"status": "error", "error": f"Invalid persona: {str(e)}"}
         except Exception as e:
-            return {"error": str(e)}
+            return {"status": "error", "error": f"An unexpected error occurred: {str(e)}"}
         finally:
             if original_persona:
                 self.agent.switch_persona(original_persona)

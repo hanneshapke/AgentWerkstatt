@@ -36,7 +36,8 @@ class AgentConfig:
 
         config_dir = Path(file_path).parent
 
-        # Load multiple personas
+        # Load personas based on the configuration structure.
+        # Case 1: A 'personas' dictionary is defined.
         if "personas" in data:
             loaded_personas = {}
             for name, persona_path in data["personas"].items():
@@ -48,19 +49,21 @@ class AgentConfig:
                 else:
                     print(f"Warning: Persona file not found for '{name}': {persona_file}")
             data["personas"] = loaded_personas
-        # Fallback for single persona for backward compatibility
+        # Case 2: A single 'persona' key is defined (for backward compatibility).
         elif data.get("persona"):
             persona_file = data["persona"]
             if not os.path.isabs(persona_file):
                 persona_file = config_dir / persona_file
             data["personas"] = {"default": cls.from_persona_file(str(persona_file))}
             del data["persona"]
+        # Case 3: No persona is defined; fall back to default 'agents.md'.
         else:
-            # Default to agents.md
+            # Default to agents.md in the same directory as the config file.
             default_persona_file = config_dir / "agents.md"
             if default_persona_file.exists():
                 data["personas"] = {"default": cls.from_persona_file(str(default_persona_file))}
             else:
+                # If not found, fall back to 'agents.md' in the project root.
                 data["personas"] = {"default": cls.from_persona_file("agents.md")}
 
         # Handle nested langfuse config - flatten it into the main config
