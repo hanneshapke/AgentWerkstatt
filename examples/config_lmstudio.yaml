@@ -1,6 +1,7 @@
 # Example configuration for LMStudio LLM
-provider: "lmstudio"
-model: "openai/gpt-oss-20b"  # Use whatever model name you have loaded in LMStudio
+llm:
+  provider: "lmstudio"
+  model: "openai/gpt-oss-20b"  # Use whatever model name you have loaded in LMStudio
 tools_dir: "src/agentwerkstatt/tools"
 verbose: true
 

@@ -39,7 +39,7 @@ def mock_environment():
 def sample_agent_config():
     """Provide sample agent configuration for testing."""
     return {
-        "model": "claude-3-sonnet-20240229",
+        "model": "claude-sonnet-4-20250514",
         "tools_dir": "tools",
         "verbose": False,
         "persona": "Test agent for unit testing",

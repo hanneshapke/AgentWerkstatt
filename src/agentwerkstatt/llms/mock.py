@@ -15,16 +15,13 @@ class MockLLM(BaseLLM):
         persona: str = "Test agent",
         tools: list[Any] = None,
         responses: list[Message] = None,
+        **kwargs,
     ):
         """Initialize mock LLM without calling parent __init__ to avoid API key validation"""
-        self.model_name = model_name
-        self.persona = persona
-        self.tools = tools or []
-        self.conversation_history = []
+        super().__init__(model_name, tools, persona, **kwargs)
         self.system_message = f"You are {persona}. You are a helpful assistant."
         self.responses = responses or []
         self.response_index = 0
-        self.observability_service = None
 
     def set_persona(self, persona: str):
         """Set the persona for the LLM"""
@@ -77,6 +74,12 @@ class MockLLM(BaseLLM):
             "usage": {"input_tokens": 10, "output_tokens": 5},
         }
 
+    def query(self, prompt: str, context: str = "") -> str:
+        """
+        Sends a query to the language model and returns the response.
+        """
+        return "Mock query response"
+
     def process_request(
         self, messages: list[dict[str, Any]]
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -85,18 +88,8 @@ class MockLLM(BaseLLM):
         assistant_message = response.get("content", [])
         return messages, assistant_message
 
-    def query(self, prompt: str, context: str) -> str:
-        """
-        Sends a query to the language model and returns the response.
-        """
-        return "Mock query response"
-
     def get_info(self) -> dict:
         """
         Returns information about the model.
         """
         return {"model": self.model_name}
-
-    def clear_history(self) -> None:
-        """Clear conversation history"""
-        self.conversation_history.clear()

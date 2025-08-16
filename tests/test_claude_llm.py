@@ -1,43 +1,35 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from agentwerkstatt.llms.claude import ClaudeLLM
+from agentwerkstatt.llms.claude import create_claude_llm
+from agentwerkstatt.llms.generic_llm import GenericLLM
 
 
-class TestClaudeLLM(unittest.TestCase):
-    def setUp(self):
-        self.mock_observability_service = MagicMock()
-        with unittest.mock.patch("os.getenv", return_value="test_key"):
-            self.llm = ClaudeLLM(
-                persona="test_persona",
-                model_name="test_model",
-                tools=[],
-                observability_service=self.mock_observability_service,
-            )
-        self.llm.api_client = MagicMock()
+class TestClaudeLLMFactory(unittest.TestCase):
+    @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test_key"})
+    def test_create_claude_llm_success(self):
+        """Test that the factory creates a GenericLLM instance with correct config."""
+        mock_obs_service = MagicMock()
+        llm = create_claude_llm(
+            model_name="test_model",
+            persona="test_persona",
+            tools=[],
+            observability_service=mock_obs_service,
+        )
 
-    def test_make_api_request_success(self):
-        self.llm.api_client.post.return_value = {"content": "response"}
-        result = self.llm.make_api_request([{"role": "user", "content": "hello"}])
-        self.assertEqual(result, {"content": "response"})
-        self.mock_observability_service.observe_llm_call.assert_called_once()
-        self.mock_observability_service.update_llm_observation.assert_called_once()
+        self.assertIsInstance(llm, GenericLLM)
+        self.assertEqual(llm.model_name, "test_model")
+        self.assertEqual(llm.persona, "test_persona")
+        self.assertEqual(llm.observability_service, mock_obs_service)
+        self.assertEqual(llm.api_client.base_url, "https://api.anthropic.com/v1/messages")
+        self.assertEqual(llm.api_client.headers["x-api-key"], "test_key")
 
-    def test_make_api_request_no_messages(self):
-        result = self.llm.make_api_request([])
-        self.assertEqual(result, {"error": "No messages provided."})
-
-    @patch("agentwerkstatt.llms.claude.ClaudeLLM.make_api_request")
-    def test_process_request_success(self, mock_make_api_request):
-        mock_make_api_request.return_value = {"content": ["response"]}
-        messages, content = self.llm.process_request([{"role": "user", "content": "hello"}])
-        self.assertEqual(content, ["response"])
-
-    @patch("agentwerkstatt.llms.claude.ClaudeLLM.make_api_request")
-    def test_process_request_error(self, mock_make_api_request):
-        mock_make_api_request.return_value = {"error": "api error"}
-        messages, content = self.llm.process_request([{"role": "user", "content": "hello"}])
-        self.assertEqual(content, [{"type": "text", "text": "Error: api error"}])
+    @patch.dict("os.environ", {}, clear=True)
+    def test_create_claude_llm_missing_api_key(self):
+        """Test that the factory raises a ValueError if the API key is missing."""
+        with self.assertRaises(ValueError) as cm:
+            create_claude_llm(model_name="test_model")
+        self.assertIn("'ANTHROPIC_API_KEY' environment variable is required", str(cm.exception))
 
 
 if __name__ == "__main__":

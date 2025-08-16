@@ -173,7 +173,7 @@ agent = Agent(config)
 
 # Or customize the configuration
 config = AgentConfig(
-    model="claude-4-sonnet-20250514",
+    llm={"provider": "claude", "model": "claude-sonnet-4-20250514"},
     tools_dir="./tools",
     verbose=True,
 )
@@ -223,7 +223,9 @@ Basic configuration in `config.yaml`:
 
 ```yaml
 # LLM Model Configuration
-model: "claude-4-sonnet-20250514"
+llm:
+  provider: "claude"
+  model: "claude-sonnet-4-20250514"
 
 # Tools Configuration
 tools_dir: "./tools"

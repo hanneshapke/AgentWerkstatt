@@ -7,16 +7,26 @@ from .interfaces import (
     ObservabilityServiceProtocol,
     ToolExecutorProtocol,
 )
+from .llms import (
+    create_claude_llm,
+    create_ollama_llm,
+    create_lmstudio_llm,
+)
 from .llms.base import BaseLLM
-from .llms.claude import ClaudeLLM
-from .llms.lmstudio import LMStudioLLM
-from .llms.ollama import OllamaLLM
 from .services.conversation_handler import ConversationHandler
 from .services.langfuse_service import LangfuseService, NoOpObservabilityService
 from .services.memory_service import MemoryService, NoOpMemoryService
 from .services.tool_executor import ToolExecutor
 from .services.tool_interaction_handler import ToolInteractionHandler
 from .tools.discovery import ToolRegistry
+
+
+# Map LLM provider names to their factory functions
+LLM_FACTORIES = {
+    "claude": create_claude_llm,
+    "ollama": create_ollama_llm,
+    "lmstudio": create_lmstudio_llm,
+}
 
 
 class Agent:
@@ -77,33 +87,17 @@ class Agent:
 
     def _create_llm(self) -> BaseLLM:
         """Create LLM based on configuration and active persona"""
-        provider = self.config.provider.lower() if hasattr(self.config, "provider") else "claude"
+        provider = self.config.llm.provider
+        factory = LLM_FACTORIES.get(provider)
+        if not factory:
+            raise ValueError(f"Unsupported LLM provider: {provider}")
 
-        if provider == "claude":
-            return ClaudeLLM(
-                persona=self.active_persona,
-                model_name=self.config.model,
-                tools=self.tools,
-                observability_service=self.observability_service,
-            )
-        elif provider == "ollama":
-            return OllamaLLM(
-                persona=self.active_persona,
-                model_name=self.config.model,
-                tools=self.tools,
-                observability_service=self.observability_service,
-            )
-        elif provider == "lmstudio":
-            return LMStudioLLM(
-                persona=self.active_persona,
-                model_name=self.config.model,
-                tools=self.tools,
-                observability_service=self.observability_service,
-            )
-        else:
-            raise ValueError(
-                f"Unsupported LLM provider: {provider}. Supported providers: claude, ollama, lmstudio"
-            )
+        return factory(
+            persona=self.active_persona,
+            model_name=self.config.llm.model,
+            tools=self.tools,
+            observability_service=self.observability_service,
+        )
 
     def switch_persona(self, persona_name: str):
         """Switches the agent's active persona."""
@@ -179,3 +173,29 @@ class Agent:
         response = self.conversation_handler.process_message(user_input, enhanced_input)
 
         return response
+
+
+def run_agent(config: AgentConfig, session_id: str | None = None):
+    """
+    Initializes and runs the agent based on the provided configuration.
+    """
+    agent = Agent(config=config, session_id=session_id)
+    print(f"Starting agent with persona: {agent.active_persona_name}")
+
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() in ["exit", "quit"]:
+            print("Exiting.")
+            break
+
+        if user_input.startswith("/persona "):
+            persona_name = user_input.split(" ", 1)[1]
+            try:
+                agent.switch_persona(persona_name)
+                print(f"Switched to persona: {persona_name}")
+            except ValueError as e:
+                print(e)
+            continue
+
+        response = agent.process_request(user_input)
+        print(f"Agent: {response}")

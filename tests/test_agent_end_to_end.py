@@ -51,7 +51,7 @@ class TestAgentEndToEnd(unittest.TestCase):
 
         # Create a dummy config file
         self.config_data = {
-            "model": "mock-model",
+            "llm": {"provider": "claude", "model": "mock-model"},
             "tools_dir": str(self.tools_dir),
             "personas": [
                 {

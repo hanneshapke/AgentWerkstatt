@@ -16,6 +16,7 @@ class BaseLLM(ABC):
         tools: list[Any] | None = None,
         persona: str = "",
         observability_service=None,
+        **kwargs,
     ):
         self.model_name = model_name
         self.tools = tools or []
@@ -53,13 +54,6 @@ class BaseLLM(ABC):
         """
         Makes a raw API request to the LLM.
         Subclasses must implement this method to handle the specific API protocol.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def process_request(self, messages: list[dict]) -> tuple[list[dict], list[dict]]:
-        """
-        Processes a user request by sending it to the LLM and returning the conversation history and response.
         """
         raise NotImplementedError
 

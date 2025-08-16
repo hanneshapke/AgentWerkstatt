@@ -45,7 +45,9 @@ AgentWerkstatt uses YAML configuration files for non-sensitive settings. The def
 
 ```yaml
 # LLM Model Configuration
-model: "claude-4-sonnet-20250514"
+llm:
+  provider: "claude"
+  model: "claude-sonnet-4-20250514"
 
 # Tools Configuration
 tools_dir: "./tools"
@@ -89,7 +91,9 @@ langfuse:
 
 #### LLM Configuration
 
-- `model`: The default LLM model to use.
+- `llm`: The LLM configuration.
+  - `provider`: The LLM provider to use (e.g., "claude", "ollama", "lmstudio").
+  - `model`: The default LLM model to use.
 
 #### Tools Configuration
 
@@ -160,7 +164,7 @@ Currently supported Claude models:
 from agentwerkstatt import Agent, AgentConfig
 
 # Use a different model
-config = AgentConfig(model="claude-haiku-3-20240307")
+config = AgentConfig(llm={"provider": "claude", "model": "claude-3-haiku-20240307"})
 agent = Agent(config)
 ```
 
@@ -207,7 +211,7 @@ config = AgentConfig.from_yaml("config.yaml")
 
 # Or create programmatically
 config = AgentConfig(
-    model="claude-4-sonnet-20250514",
+    llm={"provider": "claude", "model": "claude-sonnet-4-20250514"},
     tools_dir="./tools",
     verbose=True,
     memory_enabled=True,
@@ -230,7 +234,9 @@ Example custom configuration:
 
 ```yaml
 # my_custom_config.yaml
-model: "claude-haiku-3-20240307"
+llm:
+  provider: "claude"
+  model: "claude-3-haiku-20240307"
 tools_dir: "./custom_tools"
 verbose: false
 
@@ -309,7 +315,9 @@ You can extend base configurations:
 
 ```yaml
 # base.yaml
-model: "claude-4-sonnet-20250514"
+llm:
+  provider: "claude"
+  model: "claude-sonnet-4-20250514"
 tools_dir: "./tools"
 verbose: true
 
