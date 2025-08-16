@@ -79,11 +79,12 @@ jobs:
       if: matrix.python-version == '3.11'
       uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
+        disable_search: true
 
   build:
     needs: quality-checks
