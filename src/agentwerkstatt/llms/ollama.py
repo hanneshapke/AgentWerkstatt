@@ -1,4 +1,5 @@
 """Factory function for creating an Ollama LLM."""
+
 import os
 from typing import Any
 
