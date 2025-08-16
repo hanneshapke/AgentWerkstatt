@@ -7,6 +7,8 @@ Provides various LLM implementations.
 
 from .base import BaseLLM
 from .claude import ClaudeLLM
+from .lmstudio import LMStudioLLM
 from .mock import MockLLM
+from .ollama import OllamaLLM
 
-__all__ = ["BaseLLM", "ClaudeLLM", "MockLLM"]
+__all__ = ["BaseLLM", "ClaudeLLM", "LMStudioLLM", "MockLLM", "OllamaLLM"]

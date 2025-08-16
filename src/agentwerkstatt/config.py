@@ -49,6 +49,7 @@ class AgentConfig(BaseSettings):
     """Configuration for the Agent."""
 
     model: str
+    provider: str = "claude"  # Default to claude for backward compatibility
     tools_dir: DirectoryPath
     verbose: bool = False
     personas: list[PersonaConfig] = Field(default_factory=list)
@@ -75,7 +76,8 @@ class AgentConfig(BaseSettings):
                 raise ValueError("Persona configuration must have a 'file' key.")
 
             if not os.path.isabs(persona_file):
-                persona_file_path = cls._config_dir / persona_file
+                # persona_file_path = cls._config_dir / persona_file
+                persona_file_path = Path(persona_file)
             else:
                 persona_file_path = Path(persona_file)
 

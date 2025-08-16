@@ -22,7 +22,7 @@ class DelegateTool(BaseTool):
     def get_schema(self) -> dict[str, Any]:
         return {
             "name": self.get_name(),
-            "description": self.description,
+            "description": self.get_description(),
             "input_schema": {
                 "type": "object",
                 "properties": {
