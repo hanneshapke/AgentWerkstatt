@@ -1,0 +1,22 @@
+# Example configuration for LMStudio LLM
+provider: "lmstudio"
+model: "openai/gpt-oss-20b"  # Use whatever model name you have loaded in LMStudio
+tools_dir: "src/agentwerkstatt/tools"
+verbose: true
+
+# Default persona
+default_persona: "default"
+
+personas:
+  - id: "default"
+    name: "Default Assistant"
+    description: "A helpful AI assistant"
+    file: "personas/researcher.md"
+
+# Optional: Observability
+langfuse:
+  enabled: false
+
+# Optional: Memory
+memory:
+  enabled: false
