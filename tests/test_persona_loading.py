@@ -101,6 +101,8 @@ def temp_config_files(test_persona_content, test_config_content):
         # Create config file
         config_file = temp_path / "config.yaml"
         test_config_content["tools_dir"] = str(tools_dir)
+        # Update persona file path to absolute path
+        test_config_content["personas"][0]["file"] = str(persona_file)
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(test_config_content, f)
 
@@ -224,7 +226,7 @@ def test_persona_loading_with_different_encodings(test_config_content):
                 "id": "default",
                 "name": "GlobalBot",
                 "description": "A persona for multilingual assistance.",
-                "file": "international_persona.md",
+                "file": str(persona_file),
             }
         ]
         tools_dir = temp_path / "tools"
