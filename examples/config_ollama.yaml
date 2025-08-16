@@ -1,6 +1,7 @@
 # Example configuration for Ollama LLM
-provider: "ollama"
-model: "gpt-oss:20b"  # or any Ollama model you have installed
+llm:
+  provider: "ollama"
+  model: "gpt-oss:20b"  # or any Ollama model you have installed
 tools_dir: "src/agentwerkstatt/tools"
 verbose: true
 

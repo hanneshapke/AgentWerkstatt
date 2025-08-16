@@ -127,11 +127,11 @@ config = AgentConfig.from_yaml("config.yaml")
 agent = Agent(config)
 
 # Or customize the configuration
+# Or customize the configuration
 config = AgentConfig(
-    model="claude-4-sonnet-20250514",
+    llm={"provider": "claude", "model": "claude-3-sonnet-20240229"},
     tools_dir="./tools",
     verbose=True,
-    persona="You are a helpful assistant with web search capabilities."
 )
 agent = Agent(config)
 
