@@ -144,7 +144,7 @@ def temp_tools_dir():
 def mock_config(temp_tools_dir):
     """Create a mock configuration for testing"""
     return AgentConfig(
-        model="claude-3-sonnet-20240229",
+        llm={"provider": "claude", "model": "claude-3-sonnet-20240229"},
         tools_dir=temp_tools_dir,
         verbose=False,
         personas=[

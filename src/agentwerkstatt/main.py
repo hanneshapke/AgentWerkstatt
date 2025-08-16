@@ -7,14 +7,26 @@ from .interfaces import (
     ObservabilityServiceProtocol,
     ToolExecutorProtocol,
 )
+from .llms import (
+    create_claude_llm,
+    create_ollama_llm,
+    create_lmstudio_llm,
+)
 from .llms.base import BaseLLM
-from .llms.claude import ClaudeLLM
 from .services.conversation_handler import ConversationHandler
 from .services.langfuse_service import LangfuseService, NoOpObservabilityService
 from .services.memory_service import MemoryService, NoOpMemoryService
 from .services.tool_executor import ToolExecutor
 from .services.tool_interaction_handler import ToolInteractionHandler
 from .tools.discovery import ToolRegistry
+
+
+# Map LLM provider names to their factory functions
+LLM_FACTORIES = {
+    "claude": create_claude_llm,
+    "ollama": create_ollama_llm,
+    "lmstudio": create_lmstudio_llm,
+}
 
 
 class Agent:
@@ -75,9 +87,14 @@ class Agent:
 
     def _create_llm(self) -> BaseLLM:
         """Create LLM based on configuration and active persona"""
-        return ClaudeLLM(
-            persona=self.active_persona,  # Use active_persona
-            model_name=self.config.model,
+        provider = self.config.llm.provider
+        factory = LLM_FACTORIES.get(provider)
+        if not factory:
+            raise ValueError(f"Unsupported LLM provider: {provider}")
+
+        return factory(
+            persona=self.active_persona,
+            model_name=self.config.llm.model,
             tools=self.tools,
             observability_service=self.observability_service,
         )
@@ -156,3 +173,29 @@ class Agent:
         response = self.conversation_handler.process_message(user_input, enhanced_input)
 
         return response
+
+
+def run_agent(config: AgentConfig, session_id: str | None = None):
+    """
+    Initializes and runs the agent based on the provided configuration.
+    """
+    agent = Agent(config=config, session_id=session_id)
+    print(f"Starting agent with persona: {agent.active_persona_name}")
+
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() in ["exit", "quit"]:
+            print("Exiting.")
+            break
+
+        if user_input.startswith("/persona "):
+            persona_name = user_input.split(" ", 1)[1]
+            try:
+                agent.switch_persona(persona_name)
+                print(f"Switched to persona: {persona_name}")
+            except ValueError as e:
+                print(e)
+            continue
+
+        response = agent.process_request(user_input)
+        print(f"Agent: {response}")

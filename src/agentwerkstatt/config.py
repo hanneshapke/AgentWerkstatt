@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 import yaml
 from pydantic import BaseModel, Field, DirectoryPath, field_validator, model_validator
@@ -45,10 +45,17 @@ class MemoryConfig(BaseModel):
     server_url: str = "http://localhost:8000"
 
 
+class LLMSettings(BaseModel):
+    """Configuration for the LLM."""
+
+    provider: Literal["claude", "ollama", "lmstudio"] = "claude"
+    model: str
+
+
 class AgentConfig(BaseSettings):
     """Configuration for the Agent."""
 
-    model: str
+    llm: LLMSettings
     tools_dir: DirectoryPath
     verbose: bool = False
     personas: list[PersonaConfig] = Field(default_factory=list)

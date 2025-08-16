@@ -63,7 +63,7 @@ def test_persona_content():
 def test_config_content():
     """Sample config YAML content for testing"""
     return {
-        "model": "claude-3-sonnet-20240229",
+        "llm": {"provider": "claude", "model": "claude-3-sonnet-20240229"},
         "tools_dir": "./tools",
         "verbose": False,
         "personas": [
@@ -116,7 +116,7 @@ def test_load_persona_from_config(temp_config_files, test_persona_content):
     config = AgentConfig.from_yaml(temp_config_files["config_path"])
 
     # Verify config loaded correctly
-    assert config.model == "claude-3-sonnet-20240229"
+    assert config.llm.model == "claude-3-sonnet-20240229"
 
     # Verify persona content was loaded into the personas list
     default_persona = next((p for p in config.personas if p.id == "default"), None)
@@ -148,7 +148,7 @@ def test_system_prompt_generation_with_persona(temp_config_files, test_persona_c
 
     # Create LLM with loaded persona
     llm = TestPersonaBaseLLM(
-        model_name=config.model, tools=mock_tools, persona=default_persona.file
+        model_name=config.llm.model, tools=mock_tools, persona=default_persona.file
     )
 
     # Get the generated system prompt
@@ -168,7 +168,7 @@ def test_custom_system_prompt_template_with_persona(temp_config_files):
     assert default_persona is not None
 
     # Create LLM with loaded persona
-    llm = TestPersonaBaseLLM(model_name=config.model, tools=[], persona=default_persona.file)
+    llm = TestPersonaBaseLLM(model_name=config.llm.model, tools=[], persona=default_persona.file)
 
     # The persona is the template now
     custom_prompt = llm.persona

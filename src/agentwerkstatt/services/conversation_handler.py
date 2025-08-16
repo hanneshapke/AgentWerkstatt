@@ -8,7 +8,7 @@ from ..interfaces import (
     MemoryServiceProtocol,
     ObservabilityServiceProtocol,
 )
-from ..llms.claude import ClaudeLLM
+from ..llms.base import BaseLLM
 from .history_manager import HistoryManager
 from .response_message_formatter import ResponseMessageFormatter
 from .tool_interaction_handler import ToolInteractionHandler
@@ -22,7 +22,7 @@ class ConversationHandler(ConversationHandlerProtocol):
 
     def __init__(
         self,
-        llm: ClaudeLLM,
+        llm: BaseLLM,
         agent: "Agent",
         memory_service: MemoryServiceProtocol,
         observability_service: ObservabilityServiceProtocol,

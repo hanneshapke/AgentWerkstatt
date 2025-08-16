@@ -24,7 +24,7 @@ class TestConfig(unittest.TestCase):
 
     def test_from_yaml_success(self):
         config_data = {
-            "model": "test-model",
+            "llm": {"provider": "claude", "model": "test-model"},
             "tools_dir": str(self.tools_dir),
             "personas": [
                 {
@@ -40,7 +40,8 @@ class TestConfig(unittest.TestCase):
             yaml.dump(config_data, f)
 
         config = AgentConfig.from_yaml(str(self.config_file))
-        self.assertEqual(config.model, "test-model")
+        self.assertEqual(config.llm.model, "test-model")
+        self.assertEqual(config.llm.provider, "claude")
         self.assertEqual(len(config.personas), 1)
         self.assertEqual(config.personas[0].file, "persona content")
 
@@ -54,7 +55,7 @@ class TestConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             AgentConfig.from_yaml(str(self.config_file))
 
-    def test_from_yaml_missing_model(self):
+    def test_from_yaml_missing_llm_config(self):
         config_data = {
             "tools_dir": str(self.tools_dir),
             "personas": [
@@ -74,7 +75,7 @@ class TestConfig(unittest.TestCase):
 
     def test_from_yaml_missing_tools_dir(self):
         config_data = {
-            "model": "test-model",
+            "llm": {"provider": "claude", "model": "test-model"},
             "personas": [
                 {
                     "id": "test",
@@ -92,7 +93,7 @@ class TestConfig(unittest.TestCase):
 
     def test_from_yaml_nonexistent_tools_dir(self):
         config_data = {
-            "model": "test-model",
+            "llm": {"provider": "claude", "model": "test-model"},
             "tools_dir": "/nonexistent/path",
             "personas": [
                 {
@@ -111,7 +112,7 @@ class TestConfig(unittest.TestCase):
 
     def test_from_yaml_invalid_default_persona(self):
         config_data = {
-            "model": "test-model",
+            "llm": {"provider": "claude", "model": "test-model"},
             "tools_dir": str(self.tools_dir),
             "personas": [
                 {
@@ -132,7 +133,7 @@ class TestConfig(unittest.TestCase):
     @patch.dict(os.environ, {}, clear=True)
     def test_langfuse_enabled_missing_env_vars(self):
         config_data = {
-            "model": "test-model",
+            "llm": {"provider": "claude", "model": "test-model"},
             "tools_dir": str(self.tools_dir),
             "personas": [
                 {
@@ -154,7 +155,7 @@ class TestConfig(unittest.TestCase):
     @patch.dict(os.environ, {"LANGFUSE_PUBLIC_KEY": "test", "LANGFUSE_SECRET_KEY": "test"})
     def test_langfuse_enabled_with_env_vars(self):
         config_data = {
-            "model": "test-model",
+            "llm": {"provider": "claude", "model": "test-model"},
             "tools_dir": str(self.tools_dir),
             "personas": [
                 {
