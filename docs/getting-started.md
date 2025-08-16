@@ -129,7 +129,7 @@ agent = Agent(config)
 # Or customize the configuration
 # Or customize the configuration
 config = AgentConfig(
-    llm={"provider": "claude", "model": "claude-3-sonnet-20240229"},
+    llm={"provider": "claude", "model": "claude-sonnet-4-20250514"},
     tools_dir="./tools",
     verbose=True,
 )

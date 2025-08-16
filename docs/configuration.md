@@ -47,7 +47,7 @@ AgentWerkstatt uses YAML configuration files for non-sensitive settings. The def
 # LLM Model Configuration
 llm:
   provider: "claude"
-  model: "claude-3-sonnet-20240229"
+  model: "claude-sonnet-4-20250514"
 
 # Tools Configuration
 tools_dir: "./tools"
@@ -211,7 +211,7 @@ config = AgentConfig.from_yaml("config.yaml")
 
 # Or create programmatically
 config = AgentConfig(
-    llm={"provider": "claude", "model": "claude-3-sonnet-20240229"},
+    llm={"provider": "claude", "model": "claude-sonnet-4-20250514"},
     tools_dir="./tools",
     verbose=True,
     memory_enabled=True,
@@ -317,7 +317,7 @@ You can extend base configurations:
 # base.yaml
 llm:
   provider: "claude"
-  model: "claude-3-sonnet-20240229"
+  model: "claude-sonnet-4-20250514"
 tools_dir: "./tools"
 verbose: true
 
