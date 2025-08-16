@@ -8,11 +8,11 @@ This roadmap outlines the planned features and improvements for AgentWerkstatt, 
 - [x] **Configuration Validation**: Schema validation for config.yaml
 - [x] **Memory Management**: Basic memory and context management using mem0.
 - [ ] **Self-Reflection**: Agent self-evaluation and improvement
-- [ ] **Planning & Reasoning**: Multi-step task planning
+- [x] **Planning & Reasoning**: Multi-step task planning
 
 ### LLM Providers
-- [ ] **OpenAI Integration**: GPT-3.5/GPT-4 support
-- [ ] **Local LLMs**: Ollama and local model support
+- [x] **OpenAI Integration**: GPT-OSS support
+- [x] **Local LLMs**: Ollama and LMStudio support
 - [ ] **Google AI**: Gemini Pro integration
 - [ ] **LLM Router**: Automatic model selection based on task complexity
 

@@ -10,10 +10,11 @@ from .base import BaseTool
 class ToolRegistry:
     """A registry for discovering and managing agent tools."""
 
-    def __init__(self, tools_dir: str):
+    def __init__(self, tools_dir: str, llm_client: object = None):
         if not os.path.isdir(tools_dir):
             raise ValueError(f"Tools directory '{tools_dir}' does not exist.")
         self.tools_dir = tools_dir
+        self.llm_client = llm_client
         self._tools = self._discover_tools()
         self._tool_map = {tool.get_name(): tool for tool in self._tools}
         logging.info(f"Initialized ToolRegistry with {len(self._tools)} tools.")
@@ -34,8 +35,18 @@ class ToolRegistry:
                 module = importlib.import_module(module_name)
                 for _, obj in inspect.getmembers(module, inspect.isclass):
                     if issubclass(obj, BaseTool) and obj is not BaseTool:
-                        tools.append(obj())
-                        logging.debug(f"Discovered and instantiated tool: {obj.__name__}")
+                        # Inspect the constructor of the tool class
+                        constructor_params = inspect.signature(obj.__init__).parameters
+                        if "llm_client" in constructor_params:
+                            # If the tool's constructor accepts an llm_client, provide it
+                            tools.append(obj(llm_client=self.llm_client))
+                            logging.debug(
+                                f"Discovered and instantiated tool with LLM client: {obj.__name__}"
+                            )
+                        else:
+                            # Otherwise, instantiate it without arguments
+                            tools.append(obj())
+                            logging.debug(f"Discovered and instantiated tool: {obj.__name__}")
             except ImportError as e:
                 logging.error(f"Failed to import tool module {module_name}: {e}")
             except Exception as e:
