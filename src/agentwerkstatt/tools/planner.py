@@ -16,7 +16,11 @@ class PlannerTool(BaseTool):
 
     def get_description(self) -> str:
         """Returns a human-readable description of what the tool does."""
-        return "Creates a step-by-step plan to achieve a goal."
+        return """
+            Creates a step-by-step plan to achieve a goal.
+            Use it to break down complex tasks into smaller, manageable steps.
+            Use it as the first step in your execution process.
+            """.strip()
 
     def get_schema(self) -> dict[str, Any]:
         """Returns the JSON schema for the tool's inputs."""
