@@ -9,6 +9,8 @@ from .interfaces import (
 )
 from .llms.base import BaseLLM
 from .llms.claude import ClaudeLLM
+from .llms.lmstudio import LMStudioLLM
+from .llms.ollama import OllamaLLM
 from .services.conversation_handler import ConversationHandler
 from .services.langfuse_service import LangfuseService, NoOpObservabilityService
 from .services.memory_service import MemoryService, NoOpMemoryService
@@ -75,12 +77,33 @@ class Agent:
 
     def _create_llm(self) -> BaseLLM:
         """Create LLM based on configuration and active persona"""
-        return ClaudeLLM(
-            persona=self.active_persona,  # Use active_persona
-            model_name=self.config.model,
-            tools=self.tools,
-            observability_service=self.observability_service,
-        )
+        provider = self.config.provider.lower() if hasattr(self.config, "provider") else "claude"
+
+        if provider == "claude":
+            return ClaudeLLM(
+                persona=self.active_persona,
+                model_name=self.config.model,
+                tools=self.tools,
+                observability_service=self.observability_service,
+            )
+        elif provider == "ollama":
+            return OllamaLLM(
+                persona=self.active_persona,
+                model_name=self.config.model,
+                tools=self.tools,
+                observability_service=self.observability_service,
+            )
+        elif provider == "lmstudio":
+            return LMStudioLLM(
+                persona=self.active_persona,
+                model_name=self.config.model,
+                tools=self.tools,
+                observability_service=self.observability_service,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported LLM provider: {provider}. Supported providers: claude, ollama, lmstudio"
+            )
 
     def switch_persona(self, persona_name: str):
         """Switches the agent's active persona."""

@@ -1,0 +1,22 @@
+# Example configuration for Ollama LLM
+provider: "ollama"
+model: "gpt-oss:20b"  # or any Ollama model you have installed
+tools_dir: "src/agentwerkstatt/tools"
+verbose: true
+
+# Default persona
+default_persona: "default"
+
+personas:
+  - id: "default"
+    name: "Default Assistant"
+    description: "A helpful AI assistant"
+    file: "personas/coder.md"
+
+# Optional: Observability
+langfuse:
+  enabled: false
+
+# Optional: Memory
+memory:
+  enabled: false
