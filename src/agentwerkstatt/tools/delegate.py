@@ -1,6 +1,7 @@
 from typing import Any
 
 from ..tools.base import BaseTool
+from ..tools.schemas import ToolSchema, InputSchema, InputProperty
 
 
 class DelegateTool(BaseTool):
@@ -19,28 +20,27 @@ class DelegateTool(BaseTool):
             "expertise of other agents to accomplish your goal."
         )
 
-    def get_schema(self) -> dict[str, Any]:
-        return {
-            "name": self.get_name(),
-            "description": self.get_description(),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "persona_name": {
-                        "type": "string",
-                        "description": (
+    def get_schema(self) -> ToolSchema:
+        return ToolSchema(
+            name=self.get_name(),
+            description=self.get_description(),
+            input_schema=InputSchema(
+                properties={
+                    "persona_name": InputProperty(
+                        type="string",
+                        description=(
                             "The name of the persona to delegate the task to (e.g., "
                             "'researcher', 'coder')."
                         ),
-                    },
-                    "task_description": {
-                        "type": "string",
-                        "description": "A clear and detailed description of the task for the other agent.",
-                    },
+                    ),
+                    "task_description": InputProperty(
+                        type="string",
+                        description="A clear and detailed description of the task for the other agent.",
+                    ),
                 },
-                "required": ["persona_name", "task_description"],
-            },
-        }
+                required=["persona_name", "task_description"],
+            ),
+        )
 
     def execute(self, persona_name: str, task_description: str) -> dict[str, Any]:
         """Switches persona, executes the task, and switches back."""

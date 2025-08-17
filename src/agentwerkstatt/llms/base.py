@@ -45,9 +45,10 @@ class BaseLLM(ABC):
         if not os.getenv(api_key_name):
             raise ValueError(f"'{api_key_name}' environment variable is required but not set.")
 
+    @abstractmethod
     def _get_tool_schemas(self) -> list[dict]:
         """Returns the JSON schema for each registered tool."""
-        return [tool.get_schema() for tool in self.tools]
+        raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
     def make_api_request(self, messages: list[dict]) -> dict:

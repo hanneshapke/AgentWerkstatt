@@ -1,9 +1,37 @@
-"""Factory function for creating a Claude LLM."""
-
+from __future__ import annotations
 import os
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from .generic_llm import GenericLLM
+
+if TYPE_CHECKING:
+    from ..tools.schemas import ToolSchema
+
+
+class ClaudeLLM(GenericLLM):
+    """A specialized LLM client for Claude models."""
+
+    def _get_tool_schemas(self) -> list[dict[str, Any]]:
+        """Returns the JSON schema for each registered tool."""
+        return [self._convert_to_anthropic_schema(tool.get_schema()) for tool in self.tools]
+
+    def _convert_to_anthropic_schema(self, schema: ToolSchema) -> dict[str, Any]:
+        """Converts the generic tool schema to the Anthropic format."""
+        return {
+            "name": schema.name,
+            "description": schema.description,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    name: {
+                        "type": prop.type,
+                        "description": prop.description,
+                    }
+                    for name, prop in schema.input_schema.properties.items()
+                },
+                "required": schema.input_schema.required,
+            },
+        }
 
 
 def create_claude_llm(
@@ -12,7 +40,7 @@ def create_claude_llm(
     tools: list[Any] = None,
     observability_service: Any = None,
     **kwargs: dict[str, Any],
-) -> GenericLLM:
+) -> ClaudeLLM:
     """
     Factory function to create a Claude LLM instance.
     """
@@ -26,7 +54,7 @@ def create_claude_llm(
         "anthropic-version": "2023-06-01",
     }
 
-    return GenericLLM(
+    return ClaudeLLM(
         model_name=model_name,
         api_base_url="https://api.anthropic.com/v1/messages",
         headers=headers,

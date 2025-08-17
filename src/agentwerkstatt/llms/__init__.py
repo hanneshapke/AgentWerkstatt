@@ -2,6 +2,7 @@
 
 from .base import BaseLLM
 from .claude import create_claude_llm
+from .gpt_oss import create_gpt_oss_llm
 from .lmstudio import create_lmstudio_llm
 from .mock import MockLLM
 from .ollama import create_ollama_llm
@@ -9,6 +10,7 @@ from .ollama import create_ollama_llm
 __all__ = [
     "BaseLLM",
     "create_claude_llm",
+    "create_gpt_oss_llm",
     "create_lmstudio_llm",
     "create_ollama_llm",
     "MockLLM",

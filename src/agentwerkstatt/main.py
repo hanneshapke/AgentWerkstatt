@@ -9,6 +9,7 @@ from .interfaces import (
 )
 from .llms import (
     create_claude_llm,
+    create_gpt_oss_llm,
     create_ollama_llm,
     create_lmstudio_llm,
 )
@@ -24,6 +25,7 @@ from .tools.discovery import ToolRegistry
 # Map LLM provider names to their factory functions
 LLM_FACTORIES = {
     "claude": create_claude_llm,
+    "gpt-oss": create_gpt_oss_llm,
     "ollama": create_ollama_llm,
     "lmstudio": create_lmstudio_llm,
 }

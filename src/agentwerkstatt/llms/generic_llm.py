@@ -1,9 +1,13 @@
 """Generic LLM implementation."""
 
-from typing import Any
+from __future__ import annotations
+from typing import Any, TYPE_CHECKING
 
 from .api_client import ApiClient
 from .base import BaseLLM
+
+if TYPE_CHECKING:
+    from ..tools.schemas import ToolSchema
 
 
 class GenericLLM(BaseLLM):
@@ -80,6 +84,31 @@ class GenericLLM(BaseLLM):
     def get_info(self) -> dict[str, str]:
         """Returns information about the model."""
         return {"model": self.model_name}
+
+    def _get_tool_schemas(self) -> list[dict[str, Any]]:
+        """Returns the JSON schema for each registered tool."""
+        return [self._convert_to_openai_schema(tool.get_schema()) for tool in self.tools]
+
+    def _convert_to_openai_schema(self, schema: ToolSchema) -> dict[str, Any]:
+        """Converts the generic tool schema to the OpenAI format."""
+        return {
+            "type": "function",
+            "function": {
+                "name": schema.name,
+                "description": schema.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        name: {
+                            "type": prop.type,
+                            "description": prop.description,
+                        }
+                        for name, prop in schema.input_schema.properties.items()
+                    },
+                    "required": schema.input_schema.required,
+                },
+            },
+        }
 
     def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """Constructs the payload for the API request."""

@@ -2,6 +2,7 @@ from typing import Any
 
 from agentwerkstatt.llms.base import BaseLLM
 from agentwerkstatt.tools.base import BaseTool
+from agentwerkstatt.tools.schemas import ToolSchema, InputSchema, InputProperty
 
 
 class PlannerTool(BaseTool):
@@ -22,25 +23,21 @@ class PlannerTool(BaseTool):
             Use it as the first step in your execution process.
             """.strip()
 
-    def get_schema(self) -> dict[str, Any]:
+    def get_schema(self) -> ToolSchema:
         """Returns the JSON schema for the tool's inputs."""
-        return {
-            "type": "function",
-            "function": {
-                "name": self.get_name(),
-                "description": self.get_description(),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "goal": {
-                            "type": "string",
-                            "description": "The goal to be achieved.",
-                        }
-                    },
-                    "required": ["goal"],
+        return ToolSchema(
+            name=self.get_name(),
+            description=self.get_description(),
+            input_schema=InputSchema(
+                properties={
+                    "goal": InputProperty(
+                        type="string",
+                        description="The goal to be achieved.",
+                    )
                 },
-            },
-        }
+                required=["goal"],
+            ),
+        )
 
     def execute(self, **kwargs: Any) -> dict[str, Any]:
         """Executes the tool with the given keyword arguments."""
