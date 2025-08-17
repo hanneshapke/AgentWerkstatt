@@ -5,7 +5,8 @@ Contains base tool class and all tool implementations
 """
 
 from .discovery import ToolRegistry
+from .file_writer import FileWriterTool
 from .planner import PlannerTool
 from .websearch import TavilySearchTool
 
-__all__ = ["TavilySearchTool", "ToolRegistry", "PlannerTool"]
+__all__ = ["TavilySearchTool", "ToolRegistry", "PlannerTool", "FileWriterTool"]
