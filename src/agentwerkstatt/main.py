@@ -11,6 +11,7 @@ from .llms import (
     create_claude_llm,
     create_ollama_llm,
     create_lmstudio_llm,
+    create_gemini_llm,
 )
 from .llms.base import BaseLLM
 from .services.conversation_handler import ConversationHandler
@@ -26,6 +27,7 @@ LLM_FACTORIES = {
     "claude": create_claude_llm,
     "ollama": create_ollama_llm,
     "lmstudio": create_lmstudio_llm,
+    "gemini": create_gemini_llm,
 }
 
 

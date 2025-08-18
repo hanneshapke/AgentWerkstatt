@@ -48,7 +48,7 @@ class MemoryConfig(BaseModel):
 class LLMSettings(BaseModel):
     """Configuration for the LLM."""
 
-    provider: Literal["claude", "ollama", "lmstudio"] = "claude"
+    provider: Literal["claude", "ollama", "lmstudio", "gemini"] = "claude"
     model: str
 
 
