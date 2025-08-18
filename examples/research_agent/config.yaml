@@ -1,0 +1,20 @@
+# Example Multi-Agent Configuration
+llm:
+  provider: claude
+  model: claude-sonnet-4-20250514
+
+tools_dir: "src/agentwerkstatt/tools" # Point to the main tools directory to access the delegate tool
+verbose: false
+
+personas:
+  - id: writer
+    name: "Writer"
+    description: "A persona that researches and writes a report."
+    file: "examples/research_agent/persona/writer.md"
+
+default_persona: "writer"
+
+# Optional: Langfuse configuration for observability
+# langfuse:
+#   enabled: false
+#   project_name: "multi-agent-example"

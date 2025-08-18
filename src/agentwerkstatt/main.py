@@ -62,18 +62,24 @@ class Agent:
         self.active_persona_name = default_persona_config.id
         self.active_persona = default_persona_config.file
 
-        # Initialize tool registry first
-        self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
-        self.tools = self.tool_registry.get_tools()
-
-        # Initialize services first (order matters for dependencies)
+        # Corrected Initialization Order
+        # 1. Initialize services without LLM or tool dependencies
         self.memory_service = memory_service or self._create_memory_service()
         self.observability_service = observability_service or self._create_observability_service()
 
-        # Initialize LLM after observability service is available
+        # 2. Initialize LLM, but without tools for now
         self.llm = llm or self._create_llm()
 
-        # Initialize remaining services
+        # 3. Initialize tool registry, injecting the LLM and config
+        self.tool_registry = ToolRegistry(
+            tools_dir=config.tools_dir, llm_client=self.llm, agent_config=self.config
+        )
+        self.tools = self.tool_registry.get_tools()
+
+        # 4. Now, provide the tools to the LLM instance to break the circular dependency
+        self.llm.tools = self.tools
+
+        # 5. Initialize remaining services
         self.tool_executor = tool_executor or self._create_tool_executor()
         self.tool_interaction_handler = self._create_tool_interaction_handler()
         self.conversation_handler = conversation_handler or self._create_conversation_handler()
@@ -87,7 +93,7 @@ class Agent:
         if verbose:
             logging.set_verbosity(logging.DEBUG)
         else:
-            logging.set_verbosity(logging.ERROR)
+            logging.set_verbosity(logging.WARNING)
 
     def _create_llm(self) -> BaseLLM:
         """Create LLM based on configuration and active persona"""
@@ -99,7 +105,6 @@ class Agent:
         return factory(
             persona=self.active_persona,
             model_name=self.config.llm.model,
-            tools=self.tools,
             observability_service=self.observability_service,
         )
 

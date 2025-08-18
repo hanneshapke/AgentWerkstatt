@@ -1,5 +1,7 @@
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
+import json
+import re
 
 from absl import logging
 
@@ -37,6 +39,10 @@ class ConversationHandler(ConversationHandlerProtocol):
         self.user_id_provider = user_id_provider or (lambda: "default_user")
         self.history_manager = HistoryManager()
         self.response_formatter = ResponseMessageFormatter(agent.active_persona_name)
+        # State for plan execution
+        self.active_plan: list[dict] | None = None
+        self.current_step_index: int = 0
+        self.step_results: dict[int, Any] = {}
 
     def enhance_input_with_memory(self, user_input: str) -> str:
         """Enhances user input with relevant memories."""
@@ -53,6 +59,12 @@ class ConversationHandler(ConversationHandlerProtocol):
         Processes a user's message, orchestrates LLM calls and tool execution, and returns the final response.
         """
         try:
+            # If a plan is active, the input should be contextualized to the plan.
+            if self.active_plan:
+                # This case is handled within _handle_tool_response, which directs the conversation.
+                # The initial user_input is effectively the trigger for the first step.
+                pass
+
             messages = self.history_manager.get_history() + [
                 {"role": "user", "content": enhanced_input}
             ]
@@ -87,10 +99,105 @@ class ConversationHandler(ConversationHandlerProtocol):
         user_input: str,
     ) -> str:
         """Handle response when tools were executed"""
-        conversation = messages + [
-            {"role": "assistant", "content": assistant_message},
-            {"role": "user", "content": tool_results},
-        ]
+        # Print the raw tool response for debugging
+        logging.warning("--- Response from Tool ---")
+        logging.warning(tool_results)
+        logging.warning("--------------------------")
+
+        # Check if the planner tool was just run
+        for result in tool_results:
+            try:
+                # Assuming result content is a JSON string
+                content = json.loads(result.get("content", "{}"))
+                if "plan" in content:
+                    self.active_plan = content["plan"]
+                    self.current_step_index = 0
+                    logging.info(f"New plan received and activated: {self.active_plan}")
+            except (json.JSONDecodeError, TypeError):
+                continue  # Ignore results that aren't valid JSON or not from the planner
+
+        # If a plan is now active, formulate the next prompt based on the plan
+        if self.active_plan:
+            if self.current_step_index < len(self.active_plan):
+                current_step = self.active_plan[self.current_step_index]
+                tool_name = current_step.get("tool")
+                tool_arguments = current_step.get("arguments", {})
+                task_description = current_step.get("task")
+
+                logging.info(f"Executing step {self.current_step_index + 1}: {task_description}")
+
+                # Substitute placeholders in arguments using regex
+                for key, value in tool_arguments.items():
+                    if isinstance(value, str):
+                        # This function will be called for each match found
+                        def replace_match(match):
+                            try:
+                                step_num = int(match.group(1))
+                                if step_num in self.step_results:
+                                    # Return the stored result as a string
+                                    return str(self.step_results[step_num])
+                                else:
+                                    logging.warning(f"Could not find result for step {step_num}")
+                                    return match.group(
+                                        0
+                                    )  # Return the original placeholder if no result
+                            except (ValueError, IndexError):
+                                logging.warning(f"Invalid placeholder format: {match.group(0)}")
+                                return match.group(0)
+
+                        # Find all placeholders like {result_of_step_1}, {result_of_step_2}, etc.
+                        tool_arguments[key] = re.sub(
+                            r"\{result_of_step_(\d+)\}", replace_match, value
+                        )
+
+                # Directly execute the tool for the current step
+                tool_block = {
+                    "id": f"step_{self.current_step_index + 1}",
+                    "name": tool_name,
+                    "input": tool_arguments,
+                }
+
+                new_tool_results, _ = self.tool_interaction_handler.handle_tool_calls(
+                    [{"type": "tool_use", **tool_block}]
+                )
+
+                # Store the result of the current step
+                if new_tool_results:
+                    self.step_results[self.current_step_index + 1] = new_tool_results[0].get(
+                        "content"
+                    )
+
+                self.current_step_index += 1
+
+                # Loop back to process the next step
+                return self._handle_tool_response(
+                    messages, assistant_message, new_tool_results, user_input
+                )
+
+            else:
+                # Plan is complete
+                logging.info("Plan execution complete.")
+                self.active_plan = None  # Reset the plan
+                self.current_step_index = 0
+                self.step_results = {}
+
+                final_text = "done"
+                final_text_with_persona = self.response_formatter.prepend_persona_to_response(
+                    final_text
+                )
+
+                self.history_manager.add_message("user", user_input)
+                self.history_manager.add_message("assistant", final_text_with_persona)
+
+                self._finalize_conversation(user_input, final_text_with_persona)
+
+                return final_text_with_persona
+        else:
+            # Original behavior if no plan is active
+            conversation = messages + [
+                {"role": "assistant", "content": assistant_message},
+                {"role": "user", "content": tool_results},
+            ]
 
         final_response = self.llm.make_api_request(conversation)
         if "error" in final_response:

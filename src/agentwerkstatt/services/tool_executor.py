@@ -58,6 +58,7 @@ class ToolExecutor(ToolExecutorProtocol):
 
     def _execute_single_tool_call(self, tool_block: dict) -> ToolResult:
         """Executes a single tool call and returns a ToolResult."""
+        logging.warning(f"Executing tool block: {tool_block}")
         tool_id = tool_block.get("id")
         tool_name = tool_block.get("name")
         tool_input = tool_block.get("input", {})
@@ -66,8 +67,9 @@ class ToolExecutor(ToolExecutorProtocol):
             logging.error(f"Skipping malformed tool block: {tool_block}")
             return ToolResult(tool_use_id="", content="Malformed tool block", is_error=True)
 
-        logging.debug(f"Executing tool '{tool_name}' (ID: {tool_id}) with input: {tool_input}")
+        logging.warning(f"Executing tool '{tool_name}' (ID: {tool_id}) with input: {tool_input}")
 
+        print(f"🛠️ Calling tool: {tool_name}")
         tool_span = self.observability_service.observe_tool_execution(tool_name, tool_input)
 
         try:

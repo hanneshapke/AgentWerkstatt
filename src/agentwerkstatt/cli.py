@@ -68,26 +68,36 @@ def _handle_user_command(command: str, agent: Agent) -> bool:
     return False
 
 
-def _run_interactive_loop(agent: Agent, session_id: str):
+def _run_interactive_loop(agent: Agent, session_id: str, task: str = None):
     """Run the main interactive loop"""
     _print_welcome_message(agent, session_id)
 
+    response = None
     while True:
         try:
-            user_input = input("You: ").strip()
+            if not response:
+                next_step_input = task
+            else:
+                next_step_input = response
 
-            if not user_input:
-                continue
+            # if task:
+            #     user_input = task
+            #     task = None
+            # else:
+            #     user_input = input("You: ").strip()
 
             # Handle special commands
-            if _handle_user_command(user_input, agent):
-                if user_input.lower() in ["quit", "exit", "q"]:
-                    break
-                continue
+            # if _handle_user_command(user_input, agent):
+            #     if user_input.lower() in ["quit", "exit", "q"]:
+            #         break
+            #     continue
 
             print("🤔 Agent is thinking...")
-            response = agent.process_request(user_input, session_id=session_id)
+            response = agent.process_request(next_step_input, session_id=session_id)
             print(f"\n🤖 Agent: {response}\n")
+
+            if response.endswith("done"):
+                break
 
         except KeyboardInterrupt:
             print("\n👋 Goodbye!")
@@ -114,11 +124,13 @@ def main(argv):
         # Generate or use provided session ID
         session_id = FLAGS.session_id or str(uuid.uuid4())
 
+        task = "I need you to write a report on the history of Chinese tea. Include the history of tea cultivation, tea production, and tea culture."
+
         # Initialize the agent with session ID
         agent = Agent(config, session_id=session_id)
 
         # Run interactive loop
-        _run_interactive_loop(agent, session_id)
+        _run_interactive_loop(agent, session_id, task)
 
     except Exception as e:
         print(f"❌ Failed to start AgentWerkstatt: {e}")
