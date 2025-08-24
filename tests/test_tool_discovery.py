@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from pathlib import Path
 import tempfile
 
+from agentwerkstatt.llms.base import ToolCall
 from agentwerkstatt.tools.discovery import ToolRegistry
 from agentwerkstatt.tools.base import BaseTool
 
@@ -55,10 +56,13 @@ class TestToolRegistry(unittest.TestCase):
         # Create a new registry that will use the mocked import
         new_registry = ToolRegistry(str(self.tools_dir))
         self.assertEqual(len(new_registry.get_tools()), 1)
-        self.assertIsNotNone(new_registry.get_tool_by_name("mock_tool"))
+        tool_call = ToolCall(tool="mock_tool", input={})
+        self.assertIsNotNone(new_registry.get_tool_by_name(tool_call))
 
     def test_get_tool_by_name_not_found(self):
-        self.assertIsNone(self.registry.get_tool_by_name("non_existent_tool"))
+        with self.assertRaises(KeyError):
+            tool_call = ToolCall(tool="non_existent_tool", input={})
+            self.registry.get_tool_by_name(tool_call)
 
 
 if __name__ == "__main__":

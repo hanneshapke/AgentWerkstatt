@@ -5,6 +5,7 @@ import httpx
 from absl import logging
 
 from .base import BaseTool
+from .schemas import ToolSchema, InputSchema, InputProperty
 
 
 class TavilySearchTool(BaseTool):
@@ -22,23 +23,25 @@ class TavilySearchTool(BaseTool):
     def get_description(self) -> str:
         return "Searches the web for real-time information, news, and answers using the Tavily search engine."
 
-    def get_schema(self) -> dict[str, Any]:
-        return {
-            "name": self.get_name(),
-            "description": self.get_description(),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "The search query to look up."},
-                    "max_results": {
-                        "type": "integer",
-                        "description": "The maximum number of results to return (default: 5).",
-                        "default": 5,
-                    },
+    def get_schema(self) -> ToolSchema:
+        return ToolSchema(
+            name=self.get_name(),
+            description=self.get_description(),
+            input_schema=InputSchema(
+                properties={
+                    "query": InputProperty(
+                        type="string",
+                        description="The search query to look up.",
+                    ),
+                    "max_results": InputProperty(
+                        type="integer",
+                        description="The maximum number of results to return (default: 5).",
+                        default=5,
+                    ),
                 },
-                "required": ["query"],
-            },
-        }
+                required=["query"],
+            ),
+        )
 
     def execute(self, query: str, max_results: int = 5) -> dict[str, Any]:
         """

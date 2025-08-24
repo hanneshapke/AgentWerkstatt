@@ -95,7 +95,7 @@ class TestWebSearchTool(unittest.TestCase):
         """Test get_schema method"""
         with patch.dict("os.environ", {"TAVILY_API_KEY": "test_key"}):
             tool = TavilySearchTool()
-            schema = tool.get_schema()
+            schema = tool.get_schema().to_claude_schema()
             self.assertEqual(schema["name"], "web_search")
             self.assertIn("input_schema", schema)
             self.assertIn("query", schema["input_schema"]["properties"])

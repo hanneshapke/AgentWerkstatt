@@ -1,6 +1,7 @@
 from typing import Any
 
 from .base import BaseTool
+from .schemas import ToolSchema, InputSchema, InputProperty
 
 
 class FileWriterTool(BaseTool):
@@ -10,27 +11,26 @@ class FileWriterTool(BaseTool):
         return "file_writer"
 
     def get_description(self) -> str:
-        return "Writes content to a markdown file, creating the file if it doesn't exist."
+        return "Writes content (e.g., summaries, plans, etc.) to a markdown file, creating the file if it doesn't exist."
 
-    def get_schema(self) -> dict[str, Any]:
-        return {
-            "name": self.get_name(),
-            "description": self.get_description(),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "filename": {
-                        "type": "string",
-                        "description": "The name of the markdown file to write to (e.g., 'my_file.md').",
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "The content to write to the file.",
-                    },
+    def get_schema(self) -> ToolSchema:
+        return ToolSchema(
+            name=self.get_name(),
+            description=self.get_description(),
+            input_schema=InputSchema(
+                properties={
+                    "filename": InputProperty(
+                        type="string",
+                        description="The name of the markdown file to write to (e.g., 'my_file.md').",
+                    ),
+                    "content": InputProperty(
+                        type="string",
+                        description="The content to write to the file.",
+                    ),
                 },
-                "required": ["filename", "content"],
-            },
-        }
+                required=["filename", "content"],
+            ),
+        )
 
     def execute(self, filename: str, content: str) -> dict[str, Any]:
         """

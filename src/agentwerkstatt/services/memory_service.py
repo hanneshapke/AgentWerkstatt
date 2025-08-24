@@ -1,9 +1,9 @@
+from abc import ABC, abstractmethod
 from functools import wraps
 import logging
 from collections.abc import Callable
 
 from ..config import AgentConfig
-from ..interfaces import MemoryServiceProtocol
 
 # mem0 imports
 try:
@@ -12,6 +12,26 @@ try:
     MEM0_AVAILABLE = True
 except ImportError:
     MEM0_AVAILABLE = False
+
+
+class MemoryServiceProtocol(ABC):
+    """Defines the interface for a memory service."""
+
+    @property
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        """Returns True if the memory service is active, False otherwise."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def retrieve_memories(self, user_input: str, user_id: str) -> str:
+        """Retrieves relevant memories based on the user's input."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def store_conversation(self, user_input: str, assistant_response: str, user_id: str):
+        """Stores a completed conversation turn in memory."""
+        raise NotImplementedError
 
 
 def memory_enabled_check(f: Callable) -> Callable:

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from agentwerkstatt.llms.claude import create_claude_llm
 from agentwerkstatt.llms.generic_llm import GenericLLM
+from agentwerkstatt.config import LLMConfig
 
 
 class TestClaudeLLMFactory(unittest.TestCase):
@@ -12,14 +13,13 @@ class TestClaudeLLMFactory(unittest.TestCase):
         mock_obs_service = MagicMock()
         llm = create_claude_llm(
             model_name="test_model",
-            persona="test_persona",
+            model_config=LLMConfig(model="test_model", temperature=0.0, max_tokens=1000),
             tools=[],
             observability_service=mock_obs_service,
         )
 
         self.assertIsInstance(llm, GenericLLM)
         self.assertEqual(llm.model_name, "test_model")
-        self.assertEqual(llm.persona, "test_persona")
         self.assertEqual(llm.observability_service, mock_obs_service)
         self.assertEqual(llm.api_client.base_url, "https://api.anthropic.com/v1/messages")
         self.assertEqual(llm.api_client.headers["x-api-key"], "test_key")
@@ -28,7 +28,10 @@ class TestClaudeLLMFactory(unittest.TestCase):
     def test_create_claude_llm_missing_api_key(self):
         """Test that the factory raises a ValueError if the API key is missing."""
         with self.assertRaises(ValueError) as cm:
-            create_claude_llm(model_name="test_model")
+            create_claude_llm(
+                model_name="test_model",
+                model_config=LLMConfig(model="test_model", temperature=0.0, max_tokens=1000),
+            )
         self.assertIn("'ANTHROPIC_API_KEY' environment variable is required", str(cm.exception))
 
 

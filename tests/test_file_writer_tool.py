@@ -28,14 +28,16 @@ class TestFileWriterTool(unittest.TestCase):
         self.assertEqual(self.tool.get_name(), "file_writer")
 
     def test_get_description(self):
-        self.assertIn("Writes content to a markdown file", self.tool.get_description())
+        self.assertIn(
+            "Writes content (e.g., summaries, plans, etc.) to a markdown file, creating the file if it doesn't exist.",
+            self.tool.get_description(),
+        )
 
     def test_get_schema(self):
         schema = self.tool.get_schema()
-        self.assertEqual(schema["name"], "file_writer")
-        self.assertIn("input_schema", schema)
-        self.assertIn("filename", schema["input_schema"]["properties"])
-        self.assertIn("content", schema["input_schema"]["properties"])
+        self.assertEqual(schema.name, "file_writer")
+        self.assertIn("filename", schema.input_schema.properties.keys())
+        self.assertIn("content", schema.input_schema.properties.keys())
 
     def test_execute_overwrite(self):
         initial_content = "Initial content."

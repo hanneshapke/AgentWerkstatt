@@ -5,16 +5,19 @@ import os
 from absl import logging
 
 from .base import BaseTool
+from .schemas import ToolSchema
+from ..llms.base import ToolCall
 
 
 class ToolRegistry:
     """A registry for discovering and managing agent tools."""
 
-    def __init__(self, tools_dir: str, llm_client: object = None):
+    def __init__(self, tools_dir: str, llm_client: object = None, agent_config: object = None):
         if not os.path.isdir(tools_dir):
             raise ValueError(f"Tools directory '{tools_dir}' does not exist.")
         self.tools_dir = tools_dir
         self.llm_client = llm_client
+        self.agent_config = agent_config
         self._tools = self._discover_tools()
         self._tool_map = {tool.get_name(): tool for tool in self._tools}
         logging.info(f"Initialized ToolRegistry with {len(self._tools)} tools.")
@@ -37,11 +40,19 @@ class ToolRegistry:
                     if issubclass(obj, BaseTool) and obj is not BaseTool:
                         # Inspect the constructor of the tool class
                         constructor_params = inspect.signature(obj.__init__).parameters
+
+                        init_args = {}
                         if "llm_client" in constructor_params:
-                            # If the tool's constructor accepts an llm_client, provide it
-                            tools.append(obj(llm_client=self.llm_client))
+                            init_args["llm_client"] = self.llm_client
+                        if "tool_registry" in constructor_params:
+                            init_args["tool_registry"] = self
+                        if "agent_config" in constructor_params:
+                            init_args["agent_config"] = self.agent_config
+
+                        if init_args:
+                            tools.append(obj(**init_args))
                             logging.debug(
-                                f"Discovered and instantiated tool with LLM client: {obj.__name__}"
+                                f"Discovered and instantiated tool with args: {obj.__name__}"
                             )
                         else:
                             # Otherwise, instantiate it without arguments
@@ -58,14 +69,19 @@ class ToolRegistry:
         """Returns a list of all discovered tool instances."""
         return self._tools
 
-    def get_tool_by_name(self, name: str) -> BaseTool | None:
+    def get_tool_by_name(self, tool_call: ToolCall) -> BaseTool | None:
         """
         Retrieves a tool instance by its name.
         Returns:
             The tool instance or None if not found.
         """
-        return self._tool_map.get(name)
+        logging.debug(f"Getting tool: {tool_call.tool}")
+        logging.debug(f"Tool map: {self._tool_map}")
+        logging.debug(f"Tool map type: {type(self._tool_map)}")
+        logging.debug(f"Tool map keys: {self._tool_map.keys()}")
+        logging.debug(f"Name: {tool_call.tool}")
+        return self._tool_map[tool_call.tool]
 
-    def get_tool_schemas(self) -> list[dict]:
+    def get_tool_schemas(self) -> list[ToolSchema]:
         """Returns the JSON schemas for all registered tools."""
         return [tool.get_schema() for tool in self._tools]

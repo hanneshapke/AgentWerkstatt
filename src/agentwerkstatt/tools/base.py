@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from .schemas import ToolSchema
+
 
 class BaseTool(ABC):
     """Abstract base class for all tools available to the agent."""
@@ -16,7 +18,7 @@ class BaseTool(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_schema(self) -> dict[str, Any]:
+    def get_schema(self) -> ToolSchema:
         """
         Returns the JSON schema for the tool's inputs, as required by the LLM.
         """

@@ -1,9 +1,11 @@
 """Mock LLM implementation for testing purposes"""
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-from ..interfaces import Message
 from .base import BaseLLM
+
+if TYPE_CHECKING:
+    from ..main import Messages
 
 
 class MockLLM(BaseLLM):
@@ -12,20 +14,15 @@ class MockLLM(BaseLLM):
     def __init__(
         self,
         model_name: str = "mock-model",
-        persona: str = "Test agent",
         tools: list[Any] = None,
-        responses: list[Message] = None,
+        responses: "Messages | None" = None,
         **kwargs,
     ):
         """Initialize mock LLM without calling parent __init__ to avoid API key validation"""
-        super().__init__(model_name, tools, persona, **kwargs)
-        self.system_message = f"You are {persona}. You are a helpful assistant."
-        self.responses = responses or []
+        super().__init__(model_name, tools, **kwargs)
+        self.system_message = "You are a helpful assistant."
+        self.responses = responses.messages if responses else []
         self.response_index = 0
-
-    def set_persona(self, persona: str):
-        """Set the persona for the LLM"""
-        self.persona = persona
 
     def make_api_request(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """Mock API request that returns a predictable response."""

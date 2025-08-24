@@ -24,8 +24,17 @@ class TestReflectionTool(unittest.TestCase):
             Does the following final answer match the initial request?
             Initial Request: {initial_request}
             Final Answer: {final_answer}
-            Answer with "yes" or "no" and a brief explanation.
-            """.strip()
+
+            Evaluate whether the final answer:
+            1. Directly addresses the initial request
+            2. Is complete and thorough
+            3. Provides all requested deliverables
+
+            Answer with "APPROVED" if the answer fully meets the request, or "NEEDS_REVISION" if it doesn't.
+            Then provide a brief explanation of your decision.
+
+            IMPORTANT: If you respond with "APPROVED", the agent will stop and provide this as the final answer.
+            If you respond with "NEEDS_REVISION", explain what's missing or needs improvement.""".strip()
         mock_llm_client.query.assert_called_once_with(prompt=expected_prompt, context="")
 
         # Assert that the result is correct
@@ -75,11 +84,11 @@ class TestReflectionTool(unittest.TestCase):
     def test_get_schema(self):
         """Test get_schema method"""
         tool = ReflectionTool(llm_client=MagicMock())
-        schema = tool.get_schema()
-        self.assertEqual(schema["function"]["name"], "reflection")
-        self.assertIn("parameters", schema["function"])
-        self.assertIn("initial_request", schema["function"]["parameters"]["properties"])
-        self.assertIn("final_answer", schema["function"]["parameters"]["properties"])
+        schema = tool.get_schema().to_openai_schema()
+        self.assertEqual(schema["name"], "reflection")
+        self.assertIn("parameters", schema)
+        self.assertIn("initial_request", schema["parameters"]["properties"])
+        self.assertIn("final_answer", schema["parameters"]["properties"])
 
 
 if __name__ == "__main__":

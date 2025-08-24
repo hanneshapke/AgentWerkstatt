@@ -1,34 +1,44 @@
+from dataclasses import dataclass, field
+from datetime import datetime
+from collections.abc import Callable
 from absl import logging
 
-from .config import AgentConfig
-from .interfaces import (
-    ConversationHandlerProtocol,
-    MemoryServiceProtocol,
-    ObservabilityServiceProtocol,
-    ToolExecutorProtocol,
-)
+from .config import AgentConfig, LLMConfig
+
 from .llms import (
     create_claude_llm,
+    create_gpt_oss_llm,
     create_ollama_llm,
     create_lmstudio_llm,
     create_gemini_llm,
 )
-from .llms.base import BaseLLM
-from .services.conversation_handler import ConversationHandler
-from .services.langfuse_service import LangfuseService, NoOpObservabilityService
-from .services.memory_service import MemoryService, NoOpMemoryService
-from .services.tool_executor import ToolExecutor
-from .services.tool_interaction_handler import ToolInteractionHandler
+from .llms.base import BaseLLM, LLMResponse
 from .tools.discovery import ToolRegistry
 
 
 # Map LLM provider names to their factory functions
-LLM_FACTORIES = {
+LLM_FACTORIES: dict[str, Callable] = {
     "claude": create_claude_llm,
+    "gpt-oss": create_gpt_oss_llm,
     "ollama": create_ollama_llm,
     "lmstudio": create_lmstudio_llm,
     "gemini": create_gemini_llm,
 }
+
+
+@dataclass
+class Message:
+    """Represents a single message in a conversation."""
+
+    role: str
+    content: str
+
+
+@dataclass
+class Messages:
+    """Represents a list of messages in a conversation."""
+
+    messages: list[Message] = field(default_factory=list)
 
 
 class Agent:
@@ -39,165 +49,199 @@ class Agent:
     def __init__(
         self,
         config: AgentConfig,
-        llm: BaseLLM | None = None,
-        memory_service: MemoryServiceProtocol | None = None,
-        observability_service: ObservabilityServiceProtocol | None = None,
-        tool_executor: ToolExecutorProtocol | None = None,
-        conversation_handler: ConversationHandlerProtocol | None = None,
-        session_id: str | None = None,
+        # TODO: add memory and observability services
+        # memory_service: MemoryServiceProtocol | None = None,
+        # observability_service: ObservabilityServiceProtocol | None = None,
     ):
         self.config = config
-        self.session_id = session_id
+        self.messages = Messages()
 
-        default_persona_config = next(
-            (p for p in config.personas if p.id == config.default_persona), None
+        # Corrected Initialization Order
+        # 1. Initialize services without LLM or tool dependencies
+        # self.memory_service = memory_service or self._create_memory_service()
+        # self.observability_service = observability_service or self._create_observability_service()
+
+        # 2. Initialize LLM, but without tools for now
+        self.llm = self._create_llm()
+
+        # 3. Initialize tool registry, injecting the LLM and config
+        self.tool_registry = ToolRegistry(
+            tools_dir=config.tools_dir, llm_client=self.llm, agent_config=self.config
         )
-        if not default_persona_config:
-            raise ValueError(
-                f"Default persona '{config.default_persona}' not found in configuration."
-            )
-
-        self.active_persona_name = default_persona_config.id
-        self.active_persona = default_persona_config.file
-
-        # Initialize tool registry first
-        self.tool_registry = ToolRegistry(tools_dir=config.tools_dir)
-        self.tools = self.tool_registry.get_tools()
-
-        # Initialize services first (order matters for dependencies)
-        self.memory_service = memory_service or self._create_memory_service()
-        self.observability_service = observability_service or self._create_observability_service()
-
-        # Initialize LLM after observability service is available
-        self.llm = llm or self._create_llm()
-
-        # Initialize remaining services
-        self.tool_executor = tool_executor or self._create_tool_executor()
-        self.tool_interaction_handler = self._create_tool_interaction_handler()
-        self.conversation_handler = conversation_handler or self._create_conversation_handler()
+        self.llm.tools = self.tool_registry.get_tools()
 
         self._set_logging_verbosity(self.config.verbose)
 
-        logging.debug(f"Tools: {self.tools}")
+        logging.debug(f"Tools: {self.llm.tools}")
+
+        # Add system prompt to the LLM
+        self.system_prompt = f"""
+** Overall Goal **
+You are a helpful AI assistant to assist the user with their task.
+
+** Task Objective **
+Solve the following task: ```{self.config.task_objective}```
+
+** Tools **
+You have the following tools at your disposal:
+{self.llm.get_tool_descriptions()}
+
+IMPORTANT: Make good use of the tools to solve the task and don't rely on your own, intrinsic knowledge.
+
+** Response Format **
+CRITICAL: You MUST respond ONLY with valid JSON wrapped in markdown code blocks. Do not use native tool calling syntax.
+
+ALWAYS respond in EXACTLY this format (including the markdown code block):
+```json
+{{
+  "reasoning": "Your thoughts about the next step",
+  "tool_call": {{
+    "tool": "tool_name",
+    "input": {{
+      "parameter1": "value1",
+      "parameter2": "value2"
+    }}
+  }},
+  "message_to_user": "Brief message to the user",
+  "final_answer": ""
+}}
+```
+
+If you don't need to call a tool, set "tool_call" to null:
+```json
+{{
+  "reasoning": "Your thoughts",
+  "tool_call": null,
+  "message_to_user": "Your message",
+  "final_answer": "Your final answer when task is complete"
+}}
+```
+
+REQUIRED FIELDS:
+- "reasoning": Always required - explain your thinking
+- "tool_call": Either a tool call object or null
+- "message_to_user": Always required - brief status update
+- "final_answer": Required - empty string unless task is complete
+
+FORBIDDEN:
+- Do NOT use native tool calling syntax like [{{"type": "tool_use", ...}}]
+- Do NOT add any text before or after the JSON code block
+- Do NOT use markdown formatting inside JSON strings
+
+** Final Tips **
+- Always think before you act
+- Start with the planning tool to break down complex tasks
+- Limit web search to 5 results per search and max 5 searches total
+- Use the reflection tool as the FINAL step to verify your work
+- AFTER using the reflection tool, you MUST provide a final_answer (no more tool calls)
+- Only provide a final_answer when the task is completely finished
+- The current date and time is: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+""".strip()
+
+        self.llm.set_system_prompt(self.system_prompt)
 
     def _set_logging_verbosity(self, verbose: bool):
         """Set logging verbosity based on config"""
         if verbose:
             logging.set_verbosity(logging.DEBUG)
         else:
-            logging.set_verbosity(logging.ERROR)
+            logging.set_verbosity(logging.WARNING)
 
     def _create_llm(self) -> BaseLLM:
-        """Create LLM based on configuration and active persona"""
+        """Create LLM based on configuration"""
         provider = self.config.llm.provider
-        factory = LLM_FACTORIES.get(provider)
-        if not factory:
+        if provider not in LLM_FACTORIES:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 
+        factory = LLM_FACTORIES[provider]  # Direct access after validation
         return factory(
-            persona=self.active_persona,
             model_name=self.config.llm.model,
-            tools=self.tools,
-            observability_service=self.observability_service,
+            model_config=self.config.llm,
+            observability_service=None,  # TODO: implement observability service
         )
 
-    def switch_persona(self, persona_name: str):
-        """Switches the agent's active persona."""
-        persona_config = next((p for p in self.config.personas if p.id == persona_name), None)
-        if not persona_config:
-            raise ValueError(f"Persona '{persona_name}' not found in configuration.")
+    # TODO: add memory and observability services
+    # def _create_memory_service(self) -> MemoryServiceProtocol:
+    #     """Create memory service based on configuration"""
+    #     if self.config.memory.enabled:
+    #         return MemoryService(self.config)
+    #     return NoOpMemoryService()
 
-        self.active_persona_name = persona_config.id
-        self.active_persona = persona_config.file
+    # def _create_observability_service(self) -> ObservabilityServiceProtocol:
+    #     """Create observability service based on configuration"""
+    #     if self.config.langfuse.enabled:
+    #         return LangfuseService(self.config)
+    #     return NoOpObservabilityService()
 
-        # Update the LLM with the new persona
-        self.llm.set_persona(self.active_persona)
-        logging.info(f"Switched to persona: {persona_name}")
+    def run(self):
+        """Run the agent."""
+        # Set task objective as first assistant message
+        iterations = 0
 
-    def _create_memory_service(self) -> MemoryServiceProtocol:
-        """Create memory service based on configuration"""
-        if self.config.memory.enabled:
-            return MemoryService(self.config)
-        return NoOpMemoryService()
+        self.messages.messages.append(Message(role="system", content=self.system_prompt))
+        self.messages.messages.append(Message(role="assistant", content=self.config.task_objective))
 
-    def _create_observability_service(self) -> ObservabilityServiceProtocol:
-        """Create observability service based on configuration"""
-        if self.config.langfuse.enabled:
-            return LangfuseService(self.config)
-        return NoOpObservabilityService()
+        logging.debug("--------------------------------")
+        logging.debug(f"Number of messages: {len(self.messages.messages)}")
+        for i, message in enumerate(self.messages.messages):
+            logging.debug(f"Message {i}: {message.role} - {message.content}")
 
-    def _create_tool_executor(self) -> ToolExecutorProtocol:
-        """Create tool executor with observability support"""
-        return ToolExecutor(self.tool_registry, self.observability_service, agent_instance=self)
+        while True:
+            iterations += 1
+            print(f"Iteration {iterations}")
+            if self.config.max_iterations and iterations > self.config.max_iterations:
+                print("Max iterations reached")
+                break
 
-    def _create_tool_interaction_handler(self) -> ToolInteractionHandler:
-        """Create tool interaction handler."""
-        return ToolInteractionHandler(self.tool_executor)
+            response = self.llm.query(self.messages)
+            # parse response as LLMResponse
+            logging.debug(f"Response: {response}")
+            response_json = response.model_dump_json(indent=2)
+            response = LLMResponse.model_validate_json(response_json)
+            logging.debug(f"Response: {response}")
 
-    def _create_conversation_handler(self) -> ConversationHandlerProtocol:
-        """Create conversation handler with all dependencies"""
-        return ConversationHandler(
-            llm=self.llm,
-            agent=self,
-            memory_service=self.memory_service,
-            observability_service=self.observability_service,
-            tool_interaction_handler=self.tool_interaction_handler,
-        )
-
-    def process_request(self, user_input: str, session_id: str | None = None) -> str:
-        """
-        Process user request using the conversation handler
-
-        Args:
-            user_input: User's request as a string
-            session_id: Optional session ID to group related traces
-
-        Returns:
-            Response string from the agent
-        """
-
-        # Use provided session_id or fall back to instance session_id
-        current_session_id = session_id or self.session_id
-
-        # Start observing the request
-        metadata = {
-            "model": self.llm.model_name,
-            "project": self.config.langfuse.project_name,
-            "memory_enabled": self.memory_service.is_enabled,
-            "session_id": current_session_id,
-        }
-        self.observability_service.observe_request(user_input, metadata)
-
-        # Enhance input with memory context
-        enhanced_input = self.conversation_handler.enhance_input_with_memory(user_input)
-
-        # Process the message
-        response = self.conversation_handler.process_message(user_input, enhanced_input)
-
-        return response
+            if response.tool_call:
+                print(f"* Tool call: {response.tool_call.tool}")
+                logging.debug(f"Tool call: {response.tool_call}")
+                tool = self.tool_registry.get_tool_by_name(response.tool_call)
+                logging.debug(f"Tool: {tool}")
+                logging.debug(f"Tool input: {response.tool_call.input}")
+                tool_response = tool.execute(**response.tool_call.input)
+                logging.debug(f"Tool response: {tool_response}")
+                self.messages.messages.append(
+                    Message(
+                        role="assistant",
+                        content=f"The tool {response.tool_call.tool} exited successfully and returned the following response: {tool_response}",
+                    )
+                )
+            elif response.final_answer:
+                print(f"Final answer: {response.final_answer}")
+                break
+            elif response.reasoning:
+                logging.debug(f"Reasoning: {response.reasoning}")
+                print(f"* Message to user: {response.message_to_user}")
+                self.messages.messages.append(
+                    Message(role="assistant", content=f"Reasoning: {response.reasoning}")
+                )
+            else:
+                print("No response from LLM")
+                break
 
 
-def run_agent(config: AgentConfig, session_id: str | None = None):
-    """
-    Initializes and runs the agent based on the provided configuration.
-    """
-    agent = Agent(config=config, session_id=session_id)
-    print(f"Starting agent with persona: {agent.active_persona_name}")
+def main():
+    config = AgentConfig(
+        llm=LLMConfig(
+            provider="claude",
+            model="claude-sonnet-4-20250514",
+        ),
+        tools_dir="./src/agentwerkstatt/tools",
+        verbose=False,
+        max_iterations=15,
+        task_objective="Find good concerts in Portland in the next 3 months and write me a short summary of the concerts as a markdown file.",
+    )
+    agent = Agent(config)
+    agent.run()
 
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() in ["exit", "quit"]:
-            print("Exiting.")
-            break
 
-        if user_input.startswith("/persona "):
-            persona_name = user_input.split(" ", 1)[1]
-            try:
-                agent.switch_persona(persona_name)
-                print(f"Switched to persona: {persona_name}")
-            except ValueError as e:
-                print(e)
-            continue
-
-        response = agent.process_request(user_input)
-        print(f"Agent: {response}")
+if __name__ == "__main__":
+    main()
