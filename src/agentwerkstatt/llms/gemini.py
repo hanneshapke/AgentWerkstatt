@@ -10,9 +10,9 @@ from .generic_llm import GenericLLM
 
 def create_gemini_llm(
     model_name: str,
+    model_config: LLMConfig = None,
     tools: list[Any] = None,
     observability_service: Any = None,
-    model_config: LLMConfig = None,
     **kwargs: dict[str, Any],
 ) -> GenericLLM:
     """
