@@ -10,43 +10,17 @@
       "name": "Debug AgentWerkstatt",
       "type": "python",
       "request": "launch",
-      "module": "agentwerkstatt.cli",
+      "module": "agentwerkstatt.main",
       "console": "integratedTerminal",
       "justMyCode": true,
       "envFile": "${workspaceFolder}/.env",
-      "args": [
-        "--config",
-        "examples/research_agent/config.yaml"
-      ],
+      // "args": [
+      //   "--config",
+      //   "examples/research_agent/config.yaml"
+      // ],
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
       }
     }
   ]
 }
-
-    1 {
-    2     "version": "0.2.0",
-    3     "configurations": [
-    4         {
-    5             "name": "Debug AgentWerkstatt",
-    6             "type": "python",
-    7             "request": "launch",
-    8             // 1. Run as a module, not a file path
-    9             "module": "agentwerkstatt.main",
-   10             "console": "integratedTerminal",
-   11             "justMyCode": true,
-   12             "envFile": "${workspaceFolder}/.env",
-   13             // 2. Add arguments to pass to your application
-   14             "args": [
-   15                 "--config",
-   16                 // Use an absolute path or a path relative to your project root
-   17                 "config.yaml"
-   18             ],
-   19             // 3. Add the 'src' folder to the PYTHONPATH
-   20             "env": {
-   21                 "PYTHONPATH": "${workspaceFolder}/src"
-   22             }
-   23         }
-   24     ]
-   25 }
