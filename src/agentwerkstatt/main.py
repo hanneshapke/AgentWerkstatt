@@ -12,6 +12,7 @@ from .llms import (
     create_gpt_oss_llm,
     create_ollama_llm,
     create_lmstudio_llm,
+    create_gemini_llm,
 )
 from .llms.base import BaseLLM
 from .services.conversation_handler import ConversationHandler
@@ -28,6 +29,7 @@ LLM_FACTORIES = {
     "gpt-oss": create_gpt_oss_llm,
     "ollama": create_ollama_llm,
     "lmstudio": create_lmstudio_llm,
+    "gemini": create_gemini_llm,
 }
 
 
