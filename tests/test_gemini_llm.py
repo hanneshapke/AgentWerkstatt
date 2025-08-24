@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from agentwerkstatt.config import LLMConfig
 from agentwerkstatt.llms.gemini import create_gemini_llm
 from agentwerkstatt.llms.generic_llm import GenericLLM
 
@@ -12,14 +13,13 @@ class TestGeminiLLMFactory(unittest.TestCase):
         mock_obs_service = MagicMock()
         llm = create_gemini_llm(
             model_name="test_model",
-            persona="test_persona",
             tools=[],
             observability_service=mock_obs_service,
+            model_config=LLMConfig(model="test_model", temperature=0.0, max_tokens=1000),
         )
 
         self.assertIsInstance(llm, GenericLLM)
         self.assertEqual(llm.model_name, "test_model")
-        self.assertEqual(llm.persona, "test_persona")
         self.assertEqual(llm.observability_service, mock_obs_service)
         self.assertEqual(
             llm.api_client.base_url,

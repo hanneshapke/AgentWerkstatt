@@ -20,7 +20,8 @@ class ReflectionTool(BaseTool):
         return """
             Checks if the generated final answer matches the initial request.
             Use it to verify that the final answer is relevant and complete.
-            Use it as the last step in your execution process.
+            Use it as the FINAL step in your execution process.
+            After using this tool, you MUST provide a final_answer with no more tool calls.
             """.strip()
 
     def get_schema(self) -> ToolSchema:
@@ -54,7 +55,17 @@ class ReflectionTool(BaseTool):
             Does the following final answer match the initial request?
             Initial Request: {initial_request}
             Final Answer: {final_answer}
-            Answer with "yes" or "no" and a brief explanation.
+
+            Evaluate whether the final answer:
+            1. Directly addresses the initial request
+            2. Is complete and thorough
+            3. Provides all requested deliverables
+
+            Answer with "APPROVED" if the answer fully meets the request, or "NEEDS_REVISION" if it doesn't.
+            Then provide a brief explanation of your decision.
+
+            IMPORTANT: If you respond with "APPROVED", the agent will stop and provide this as the final answer.
+            If you respond with "NEEDS_REVISION", explain what's missing or needs improvement.
             """.strip()
         try:
             reflection = self._llm_client.query(prompt=prompt, context="")

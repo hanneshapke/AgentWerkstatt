@@ -3,9 +3,9 @@ import logging
 import os
 from typing import Any
 from collections.abc import Callable
+from abc import ABC, abstractmethod
 
 from ..config import AgentConfig
-from ..interfaces import ObservabilityServiceProtocol
 
 # Langfuse imports
 try:
@@ -33,6 +33,55 @@ def langfuse_enabled_check(f: Callable) -> Callable:
         return f(self, *args, **kwargs)
 
     return decorated
+
+
+class ObservabilityServiceProtocol(ABC):
+    """Defines the interface for an observability and tracing service."""
+
+    @property
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        """Returns True if the observability service is active, False otherwise."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def observe_request(self, input_data: str, metadata: dict[str, Any]):
+        """Starts observing a top-level request."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def observe_tool_execution(self, tool_name: str, tool_input: dict[str, Any]) -> Any:
+        """Starts observing a tool execution and returns a span/trace object."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_tool_observation(self, tool_observation: Any, output: Any):
+        """Updates the tool observation with the execution's output."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def observe_llm_call(
+        self, model_name: str, messages: list[dict], metadata: dict[str, Any] | None = None
+    ) -> Any:
+        """Starts observing an LLM call and returns a span/generation object."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_llm_observation(
+        self, llm_generation: Any, output: Any, usage: dict[str, Any] | None = None
+    ):
+        """Updates the LLM observation with the model's output and token usage."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_observation(self, output: Any):
+        """Updates the current top-level observation with the final output."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def flush_traces(self):
+        """Ensures all pending traces are sent to the observability backend."""
+        raise NotImplementedError
 
 
 class LangfuseService(ObservabilityServiceProtocol):

@@ -11,6 +11,7 @@ flags.DEFINE_string("config", "config.yaml", "Path to the agent configuration fi
 flags.DEFINE_string(
     "session_id", None, "Optional session ID for grouping traces. Auto-generated if not provided."
 )
+flags.DEFINE_integer("max_iterations", 10, "Maximum number of iterations to run.")
 
 
 def _print_welcome_message(agent: Agent, session_id: str):
@@ -73,7 +74,13 @@ def _run_interactive_loop(agent: Agent, session_id: str, task: str = None):
     _print_welcome_message(agent, session_id)
 
     response = None
+    iteration = 0
     while True:
+        iteration += 1
+        if iteration > agent.max_iterations:
+            print("👋 Goodbye!")
+            break
+
         try:
             if not response:
                 next_step_input = task
@@ -106,10 +113,10 @@ def _run_interactive_loop(agent: Agent, session_id: str, task: str = None):
                 agent.observability_service.flush_traces()
                 print("✅ Traces sent successfully!")
             break
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            logging.error(f"Unexpected error in interactive loop: {e}")
-            break
+        # except Exception as e:
+        #     print(f"❌ Error: {e}")
+        #     logging.error(f"Unexpected error in interactive loop: {e}")
+        #     break
 
 
 def main(argv):
@@ -127,12 +134,13 @@ def main(argv):
         task = "I need you to write a report on the history of Chinese tea. Include the history of tea cultivation, tea production, and tea culture."
 
         # Initialize the agent with session ID
-        agent = Agent(config, session_id=session_id)
+        agent = Agent(config, session_id=session_id, max_iterations=FLAGS.max_iterations)
 
         # Run interactive loop
         _run_interactive_loop(agent, session_id, task)
 
-    except Exception as e:
+    # except Exception as e:
+    except KeyboardInterrupt as e:
         print(f"❌ Failed to start AgentWerkstatt: {e}")
         logging.error(f"Startup error: {e}")
         return 1

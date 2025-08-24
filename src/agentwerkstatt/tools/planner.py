@@ -54,7 +54,7 @@ class PlannerTool(BaseTool):
             ),
         )
 
-    def execute(self, **kwargs: Any) -> dict[str, Any]:
+    def execute(self, **kwargs: Any) -> dict[str, Any] | list[Any]:
         """Executes the tool with the given keyword arguments."""
         goal = kwargs.get("goal")
         if not goal:
@@ -70,16 +70,12 @@ class PlannerTool(BaseTool):
             ]
         )
 
-        available_personas = [p.id for p in self._agent_config.personas]
-
         prompt = f"""
 You are a meticulous planner agent. Your task is to create a detailed, step-by-step plan to achieve the user's goal.
 The user's goal is: "{goal}"
 
-You have the following tools available to you:
+Make use of the following tools to achieve the goal:
 {available_tools_formatted}
-
-If you use the "delegate" tool, you must choose a persona from the following list: {available_personas}
 
 Please create a plan to achieve the goal. The output MUST be a single, valid JSON object containing a single key named "plan".
 The "plan" key must contain an array of JSON objects, where each object represents a single step in the plan.
@@ -117,32 +113,24 @@ Example of the required JSON format:
 
 Do not add any commentary or text before or after the JSON output.
 """
-        try:
-            # Use make_api_request to get a structured response
-            messages = [{"role": "user", "content": prompt}]
-            response_data = self._llm_client.make_api_request(messages)
+        # try:
+        # Use make_api_request to get a structured response
+        messages = [{"role": "user", "content": prompt}]
+        response_data = self._llm_client.make_api_request(messages)
 
-            if "error" in response_data:
-                raise ValueError(response_data["error"])
+        if "error" in response_data:
+            raise ValueError(response_data["error"])
 
-            # Extract the text content from the response
-            plan_str = response_data.get("content", [{}])[0].get("text", "")
-            if not plan_str:
-                raise ValueError("LLM returned an empty response.")
+        # Extract the text content from the response
+        plan_str = response_data.get("content", [{}])[0].get("text", "")
+        if not plan_str:
+            raise ValueError("LLM returned an empty response.")
 
-            # The LLM should return a list of strings in a JSON array format.
-            # We attempt to parse it to ensure it's valid.
-            plan_data = json.loads(plan_str)
-            if "plan" not in plan_data or not isinstance(plan_data["plan"], list):
-                raise ValueError("The JSON output must have a 'plan' key with a list as its value.")
+        # The LLM should return a list of strings in a JSON array format.
+        # We attempt to parse it to ensure it's valid.
+        plan_data = json.loads(plan_str)
+        if "plan" not in plan_data or not isinstance(plan_data["plan"], list):
+            raise ValueError("The JSON output must have a 'plan' key with a list as its value.")
 
-            logging.warning(f"Plan: {plan_data}")
-            return plan_data
-        except (json.JSONDecodeError, ValueError) as e:
-            error_msg = (
-                f"Failed to generate a valid plan in JSON format: {e}. Raw output: {plan_str}"
-            )
-            logging.error(error_msg)
-            return {"error": error_msg}
-        except Exception as e:
-            return {"error": f"Failed to generate plan: {e}"}
+        logging.debug(f"Plan: {plan_data}")
+        return plan_data["plan"]

@@ -5,6 +5,8 @@ import os
 from absl import logging
 
 from .base import BaseTool
+from .schemas import ToolSchema
+from ..llms.base import ToolCall
 
 
 class ToolRegistry:
@@ -67,14 +69,19 @@ class ToolRegistry:
         """Returns a list of all discovered tool instances."""
         return self._tools
 
-    def get_tool_by_name(self, name: str) -> BaseTool | None:
+    def get_tool_by_name(self, tool_call: ToolCall) -> BaseTool | None:
         """
         Retrieves a tool instance by its name.
         Returns:
             The tool instance or None if not found.
         """
-        return self._tool_map.get(name)
+        logging.debug(f"Getting tool: {tool_call.tool}")
+        logging.debug(f"Tool map: {self._tool_map}")
+        logging.debug(f"Tool map type: {type(self._tool_map)}")
+        logging.debug(f"Tool map keys: {self._tool_map.keys()}")
+        logging.debug(f"Name: {tool_call.tool}")
+        return self._tool_map[tool_call.tool]
 
-    def get_tool_schemas(self) -> list[dict]:
+    def get_tool_schemas(self) -> list[ToolSchema]:
         """Returns the JSON schemas for all registered tools."""
         return [tool.get_schema() for tool in self._tools]

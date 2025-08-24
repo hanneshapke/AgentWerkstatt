@@ -6,6 +6,5 @@ memory:
   model_name: gpt-4o-mini
   server_url: http://localhost:8000
 model: mock-model
-persona: test_agent.md
 tools_dir: /Users/hannes/Private/AgentWerkstatt/tests/temp_tools
 verbose: false

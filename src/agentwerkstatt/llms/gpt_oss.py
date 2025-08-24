@@ -14,7 +14,6 @@ class GptOssLLM(GenericLLM):
 
 def create_gpt_oss_llm(
     model_name: str,
-    persona: str = "",
     tools: list[Any] = None,
     observability_service: Any = None,
     **kwargs: dict[str, Any],
@@ -41,7 +40,6 @@ def create_gpt_oss_llm(
         model_name=model_name,
         api_base_url=api_base_url,
         headers=headers,
-        persona=persona,
         tools=tools,
         observability_service=observability_service,
     )

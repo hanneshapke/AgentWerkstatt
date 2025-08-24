@@ -4,6 +4,8 @@
 # LLM Model Configuration
 model: "mock-model"
 
+task_objective: "Test task objective"
+
 # Tools Configuration
 tools_dir: ""  # Empty to prevent tool discovery in tests
 
@@ -20,6 +22,3 @@ memory:
   enabled: false
   model_name: "gpt-4o-mini"
   server_url: "http://localhost:8000"
-
-# Agent Persona
-persona: test_agent.md

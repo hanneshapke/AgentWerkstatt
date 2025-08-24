@@ -1,22 +1,37 @@
 import json
+from dataclasses import dataclass
+from typing import Any
 
 from absl import logging
 
-from ..interfaces import (
-    ObservabilityServiceProtocol,
-    ToolExecutorProtocol,
-    ToolResult,
-)
 from ..tools.discovery import ToolRegistry
 
 
-class ToolExecutor(ToolExecutorProtocol):
+@dataclass
+class ToolResult:
+    """Represents the result of a tool execution."""
+
+    tool_use_id: str
+    content: str
+    is_error: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Converts the ToolResult to a dictionary."""
+        return {
+            "type": "tool_result",
+            "tool_use_id": self.tool_use_id,
+            "content": self.content,
+            "is_error": self.is_error,
+        }
+
+
+class ToolExecutor:
     """Service for executing tool calls from an LLM."""
 
     def __init__(
         self,
         tool_registry: ToolRegistry,
-        observability_service: ObservabilityServiceProtocol,
+        observability_service: Any = None,
         agent_instance=None,
     ):
         self.tool_registry = tool_registry
@@ -70,7 +85,9 @@ class ToolExecutor(ToolExecutorProtocol):
         logging.warning(f"Executing tool '{tool_name}' (ID: {tool_id}) with input: {tool_input}")
 
         print(f"🛠️ Calling tool: {tool_name}")
-        tool_span = self.observability_service.observe_tool_execution(tool_name, tool_input)
+        tool_span = None
+        if self.observability_service:
+            tool_span = self.observability_service.observe_tool_execution(tool_name, tool_input)
 
         try:
             tool = self.tool_registry.get_tool_by_name(tool_name)
@@ -90,12 +107,14 @@ class ToolExecutor(ToolExecutorProtocol):
                 result_content = str(result_content)
 
             result = ToolResult(tool_use_id=tool_id, content=result_content)
-            self.observability_service.update_tool_observation(tool_span, result.to_dict())
+            if self.observability_service and tool_span:
+                self.observability_service.update_tool_observation(tool_span, result.to_dict())
             return result
 
         except Exception as e:
             logging.error(f"Error executing tool '{tool_name}': {e}", exc_info=True)
             error_content = f"Error in tool '{tool_name}': {e}"
             result = ToolResult(tool_use_id=tool_id, content=error_content, is_error=True)
-            self.observability_service.update_tool_observation(tool_span, result.to_dict())
+            if self.observability_service and tool_span:
+                self.observability_service.update_tool_observation(tool_span, result.to_dict())
             return result

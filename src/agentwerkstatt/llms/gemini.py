@@ -3,14 +3,16 @@
 import os
 from typing import Any
 
+from agentwerkstatt.config import LLMConfig
+
 from .generic_llm import GenericLLM
 
 
 def create_gemini_llm(
     model_name: str,
-    persona: str = "",
     tools: list[Any] = None,
     observability_service: Any = None,
+    model_config: LLMConfig = None,
     **kwargs: dict[str, Any],
 ) -> GenericLLM:
     """
@@ -29,8 +31,8 @@ def create_gemini_llm(
     return GenericLLM(
         model_name=model_name,
         api_base_url=api_base_url,
+        model_config=model_config,
         headers=headers,
-        persona=persona,
         tools=tools,
         observability_service=observability_service,
     )

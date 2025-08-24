@@ -11,7 +11,7 @@ class FileWriterTool(BaseTool):
         return "file_writer"
 
     def get_description(self) -> str:
-        return "Writes content to a markdown file, creating the file if it doesn't exist."
+        return "Writes content (e.g., summaries, plans, etc.) to a markdown file, creating the file if it doesn't exist."
 
     def get_schema(self) -> ToolSchema:
         return ToolSchema(
